@@ -30,9 +30,9 @@ func main() {
 	db, err := repository.ConnectToDB(repository.Config{
 		Host:     viper.GetString("db.host"),
 		Port:     viper.GetString("db.port"),
-		User:     viper.GetString("db.user"),
+		User:     os.Getenv("DB_USER"),
 		Password: os.Getenv("DB_PASSWORD"),
-		DBName:   viper.GetString("db.dbname"),
+		DBName:   os.Getenv("DB_NAME"),
 		SSLMode:  viper.GetString("db.sslmode"),
 	})
 	if err != nil {
@@ -55,13 +55,13 @@ func main() {
 		}
 	}()
 
-	logrus.Print("TaskTracker started")
+	logrus.Print("matcha started")
 
 	quit := make(chan os.Signal)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit
 
-	logrus.Print("TaskTracker shutting down")
+	logrus.Print("matcha shutting down")
 
 	if err := srv.Shutdown(context.Background()); err != nil {
 		logrus.Errorf("error occurred on shutting down: %s", err.Error())

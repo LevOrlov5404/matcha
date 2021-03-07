@@ -1,0 +1,20 @@
+version: '3.2'
+
+services:
+  postgres:
+    container_name: matcha-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/
+    image: postgres
+    ports:
+      - '54320:5432'
+    restart: unless-stopped
+    volumes:
+      - matcha-postgres:/var/lib/postgresql/data
+
+volumes:
+  matcha-postgres:
+    driver: local
