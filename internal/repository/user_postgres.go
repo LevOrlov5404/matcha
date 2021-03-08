@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/LevOrlov5404/matcha/models"
+	"github.com/LevOrlov5404/matcha/internal/models"
 	"github.com/jmoiron/sqlx"
 )
 

@@ -1,6 +1,10 @@
-port: "8080"
+address: 0.0.0.0:8080
 
 db:
-  host: "localhost"
-  port: "54320"
-  sslmode: "disable"
+  connMaxLifetime: 10m
+  maxOpenConns: 10
+  maxIdleConns: 10
+  timeout: 3s
+
+jwt:
+  tokenLifetime: 2h

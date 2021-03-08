@@ -2,9 +2,10 @@ package service
 
 import (
 	"context"
+	"time"
 
+	"github.com/LevOrlov5404/matcha/internal/models"
 	"github.com/LevOrlov5404/matcha/internal/repository"
-	"github.com/LevOrlov5404/matcha/models"
 )
 
 type (
@@ -22,10 +23,18 @@ type (
 	Service struct {
 		User
 	}
+
+	Options struct {
+		TokenLifetime    time.Duration
+		SigningKey       string
+		UserPasswordSalt string
+	}
 )
 
-func NewService(repo *repository.Repository, salt, signingKey string) *Service {
+func NewService(repo *repository.Repository, options Options) *Service {
 	return &Service{
-		User: NewUserService(repo.User, salt, signingKey),
+		User: NewUserService(
+			repo.User, options.TokenLifetime, options.SigningKey, options.UserPasswordSalt,
+		),
 	}
 }

@@ -4,23 +4,66 @@ import (
 	"context"
 	"net/http"
 	"time"
+
+	"github.com/LevOrlov5404/matcha/internal/config"
+	"github.com/LevOrlov5404/matcha/internal/service"
+	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 const timeout = 10 * time.Second
 
 type Server struct {
+	cfg        *config.Config
+	log        *logrus.Logger
+	services   *service.Service
 	httpServer *http.Server
 }
 
-func (s *Server) Run(port string, handler http.Handler) error {
+func NewServer(cfg *config.Config, log *logrus.Logger, services *service.Service) *Server {
+	s := &Server{
+		cfg:      cfg,
+		log:      log,
+		services: services,
+	}
+
 	s.httpServer = &http.Server{
-		Addr:           ":" + port,
-		Handler:        handler,
+		Addr:           cfg.Address.String(),
+		Handler:        s.InitRoutes(),
 		MaxHeaderBytes: 1 << 20, // 1 MB
 		ReadTimeout:    timeout,
 		WriteTimeout:   timeout,
 	}
 
+	return s
+}
+
+func (s *Server) InitRoutes() *gin.Engine {
+	router := gin.New()
+
+	auth := router.Group("/auth")
+	{
+		auth.POST("/sigh-up", s.CreateUser)
+		auth.POST("/sigh-in", s.SignIn)
+	}
+
+	api := router.Group("/api/v1", s.UserIdentity)
+	{
+		users := api.Group("/users")
+		{
+			users.POST("/", s.CreateUser)
+			users.GET("/", s.GetAllUsers)
+			users.GET("/by-id/:id", s.GetUserByID)
+			users.GET("/by-email-password", s.GetUserByEmailPassword)
+			users.PUT("/:id", s.UpdateUser)
+			users.DELETE("/:id", s.DeleteUser)
+		}
+	}
+
+	return router
+}
+
+func (s *Server) Run() error {
 	return s.httpServer.ListenAndServe()
 }
 

@@ -1,4 +1,4 @@
-package handler
+package server
 
 import (
 	"errors"
@@ -10,32 +10,32 @@ import (
 
 const (
 	authorizationHeader = "Authorization"
-	userCtx             = "userId"
+	userCtx             = "userID"
 )
 
-func (h *Handler) UserIdentity(c *gin.Context) {
+func (s *Server) UserIdentity(c *gin.Context) {
 	header := c.GetHeader(authorizationHeader)
 	if header == "" {
-		newErrorResponse(c, http.StatusUnauthorized, "empty auth header")
+		s.newErrorResponse(c, http.StatusUnauthorized, "empty auth header")
 		return
 	}
 
 	headerParts := strings.Split(header, " ")
 	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
-		newErrorResponse(c, http.StatusUnauthorized, "invalid auth header")
+		s.newErrorResponse(c, http.StatusUnauthorized, "invalid auth header")
 		return
 	}
 
-	userID, err := h.services.User.ParseToken(headerParts[1])
+	userID, err := s.services.User.ParseToken(headerParts[1])
 	if err != nil {
-		newErrorResponse(c, http.StatusUnauthorized, err.Error())
+		s.newErrorResponse(c, http.StatusUnauthorized, err.Error())
 		return
 	}
 
 	c.Set(userCtx, userID)
 }
 
-func getUserId(c *gin.Context) (int64, error) {
+func getUserID(c *gin.Context) (int64, error) {
 	id, ok := c.Get(userCtx)
 	if !ok {
 		return 0, errors.New("user id not found")

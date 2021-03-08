@@ -2,74 +2,69 @@ package main
 
 import (
 	"context"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/LevOrlov5404/matcha/internal/handler"
+	"github.com/LevOrlov5404/matcha/internal/config"
+	"github.com/LevOrlov5404/matcha/internal/logger"
 	"github.com/LevOrlov5404/matcha/internal/repository"
 	"github.com/LevOrlov5404/matcha/internal/server"
 	"github.com/LevOrlov5404/matcha/internal/service"
-	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 func main() {
-	logrus.SetFormatter(new(logrus.JSONFormatter))
-
-	if err := initConfig(); err != nil {
-		logrus.Fatalf("failed to initialize config: %s", err.Error())
+	cfg := &config.Config{}
+	if err := config.ReadFromFileAndSetEnv(os.Getenv("CONFIG_PATH"), cfg); err != nil {
+		log.Fatalf("failed to read config: %v", err)
 	}
 
-	if err := godotenv.Load(); err != nil {
-		logrus.Fatalf("failed to load env variables: %s", err.Error())
+	lg, err := logger.New(cfg.Logger.Level, cfg.Logger.Format)
+	if err != nil {
+		log.Fatalf("failed to init logger: %v", err)
 	}
 
 	db, err := repository.ConnectToDB(repository.Config{
-		Host:     viper.GetString("db.host"),
-		Port:     viper.GetString("db.port"),
-		User:     os.Getenv("DB_USER"),
-		Password: os.Getenv("DB_PASSWORD"),
-		DBName:   os.Getenv("DB_NAME"),
-		SSLMode:  viper.GetString("db.sslmode"),
+		Host:     cfg.DB.Address.Host,
+		Port:     cfg.DB.Address.Port,
+		User:     cfg.DB.User,
+		Password: cfg.DB.Password,
+		Database: cfg.DB.Database,
 	})
 	if err != nil {
-		logrus.Fatalf("failed to connect to db: %s", err.Error())
+		lg.Fatalf("failed to connect to db: %v", err)
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
-			logrus.Errorf("error occurred on db connection closing: %s", err.Error())
+			lg.Errorf("failed to close db: %v", err)
 		}
 	}()
 
 	repo := repository.NewRepository(db)
-	services := service.NewService(repo, os.Getenv("SALT"), os.Getenv("SIGNING_KEY"))
-	handlers := handler.NewHandler(services)
+	services := service.NewService(repo, service.Options{
+		TokenLifetime:    cfg.JWT.TokenLifetime.Duration(),
+		SigningKey:       cfg.JWT.SigningKey,
+		UserPasswordSalt: cfg.UserPasswordSalt,
+	})
 
-	srv := new(server.Server)
+	srv := server.NewServer(cfg, lg, services)
 	go func() {
-		if err := srv.Run(viper.GetString("port"), handlers.InitRoutes()); err != nil {
-			logrus.Fatalf("error occurred while running http server: %s", err.Error())
+		if err := srv.Run(); err != nil {
+			lg.Fatalf("error occurred while running http server: %v", err)
 		}
 	}()
 
-	logrus.Print("matcha started")
+	lg.Info("service started")
 
-	quit := make(chan os.Signal)
-	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT)
 	<-quit
 
-	logrus.Print("matcha shutting down")
+	lg.Info("service shutting down")
 
 	if err := srv.Shutdown(context.Background()); err != nil {
-		logrus.Errorf("error occurred on shutting down: %s", err.Error())
+		lg.Errorf("failed to shut down: %v", err)
 	}
-}
-
-func initConfig() error {
-	viper.AddConfigPath("configs")
-	viper.SetConfigName("config")
-	return viper.ReadInConfig()
 }

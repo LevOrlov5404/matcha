@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/LevOrlov5404/matcha/models"
+	"github.com/LevOrlov5404/matcha/internal/models"
 	"github.com/jmoiron/sqlx"
 )
 
