@@ -25,6 +25,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to init logger: %v", err)
 	}
+	// test
 
 	db, err := repository.ConnectToDB(repository.Config{
 		Host:     cfg.DB.Address.Host,
