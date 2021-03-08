@@ -54,8 +54,7 @@ func (s *Server) InitRoutes() *gin.Engine {
 			users.POST("/", s.CreateUser)
 			users.GET("/", s.GetAllUsers)
 			users.GET("/by-id/:id", s.GetUserByID)
-			users.GET("/by-email-password", s.GetUserByEmailPassword)
-			users.PUT("/:id", s.UpdateUser)
+			users.PUT("/", s.UpdateUser)
 			users.DELETE("/:id", s.DeleteUser)
 		}
 	}

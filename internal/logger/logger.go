@@ -20,10 +20,12 @@ func (l DefaultFormatter) ColoredLevel(entry *logrus.Entry) string {
 		return aurora.Yellow(levelName).String()
 	case logrus.InfoLevel:
 		return aurora.Green(levelName).String()
-	case logrus.ErrorLevel:
-		return aurora.Red(levelName).String()
 	case logrus.WarnLevel:
 		return aurora.Magenta(levelName).String()
+	case logrus.ErrorLevel:
+		return aurora.Red(levelName).String()
+	case logrus.FatalLevel:
+		return aurora.Red(levelName).String()
 	default:
 		return entry.Level.String()
 	}

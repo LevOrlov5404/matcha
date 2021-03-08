@@ -10,12 +10,12 @@ import (
 
 type (
 	User interface {
-		CreateUser(ctx context.Context, user models.UserToCreate) (int64, error)
-		GetUserByEmailPassword(ctx context.Context, email, password string) (models.UserToGet, error)
-		GetUserByID(ctx context.Context, id int64) (models.UserToGet, error)
-		UpdateUser(ctx context.Context, id int64, user models.UserToCreate) error
-		GetAllUsers(ctx context.Context) ([]models.UserToGet, error)
-		DeleteUser(ctx context.Context, id int64) error
+		CreateUser(ctx context.Context, user models.UserToCreate) (uint64, error)
+		GetUserByUsername(ctx context.Context, username string) (*models.User, error)
+		GetUserByID(ctx context.Context, id uint64) (*models.User, error)
+		UpdateUser(ctx context.Context, user models.User) error
+		GetAllUsers(ctx context.Context) ([]models.User, error)
+		DeleteUser(ctx context.Context, id uint64) error
 	}
 
 	Repository struct {

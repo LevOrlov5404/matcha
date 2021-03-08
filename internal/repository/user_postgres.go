@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -21,18 +23,21 @@ func NewUserPostgres(db *sqlx.DB, dbTimeout time.Duration) *UserPostgres {
 	}
 }
 
-func (r *UserPostgres) CreateUser(ctx context.Context, user models.UserToCreate) (int64, error) {
-	query := fmt.Sprintf("INSERT INTO %s (name, surname, email, password_hash) values ($1, $2, $3, $4) RETURNING id", usersTable)
+func (r *UserPostgres) CreateUser(ctx context.Context, user models.UserToCreate) (uint64, error) {
+	query := fmt.Sprintf(`
+INSERT INTO %s (email, username, first_name, last_name, password)
+values ($1, $2, $3, $4, $5) RETURNING id`, usersTable)
 
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
 
-	row := r.db.QueryRowContext(dbCtx, query, user.Name, user.Surname, user.Email, user.Password)
+	row := r.db.QueryRowContext(dbCtx, query,
+		user.Email, user.Username, user.FirstName, user.LastName, user.Password)
 	if err := row.Err(); err != nil {
-		return 0, err
+		return 0, getDBError(err)
 	}
 
-	var id int64
+	var id uint64
 	if err := row.Scan(&id); err != nil {
 		return 0, err
 	}
@@ -40,37 +45,45 @@ func (r *UserPostgres) CreateUser(ctx context.Context, user models.UserToCreate)
 	return id, nil
 }
 
-func (r *UserPostgres) GetUserByEmailPassword(ctx context.Context, email, password string) (models.UserToGet, error) {
-	query := fmt.Sprintf("SELECT id, name, surname, email FROM %s WHERE email=$1 AND password_hash=$2", usersTable)
-	var user models.UserToGet
+func (r *UserPostgres) GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
+	query := fmt.Sprintf("SELECT id, email, username, first_name, last_name, password FROM %s WHERE username=$1", usersTable)
+	var user models.User
 
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
 
-	err := r.db.GetContext(dbCtx, &user, query, email, password)
+	if err := r.db.GetContext(dbCtx, &user, query, username); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+	}
 
-	return user, err
+	return &user, nil
 }
 
-func (r *UserPostgres) GetUserByID(ctx context.Context, id int64) (models.UserToGet, error) {
-	query := fmt.Sprintf("SELECT id, name, surname, email FROM %s WHERE id=$1", usersTable)
-	var user models.UserToGet
+func (r *UserPostgres) GetUserByID(ctx context.Context, id uint64) (*models.User, error) {
+	query := fmt.Sprintf("SELECT id, email, username, first_name, last_name, password FROM %s WHERE id=$1", usersTable)
+	var user models.User
 
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
 
-	err := r.db.GetContext(dbCtx, &user, query, id)
+	if err := r.db.GetContext(dbCtx, &user, query, id); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+	}
 
-	return user, err
+	return &user, nil
 }
 
-func (r *UserPostgres) UpdateUser(ctx context.Context, id int64, user models.UserToCreate) error {
-	query := fmt.Sprintf("UPDATE %s SET name = $1, surname = $2, email = $3, password_hash = $4 WHERE id = $5", usersTable)
+func (r *UserPostgres) UpdateUser(ctx context.Context, user models.User) error {
+	query := fmt.Sprintf("UPDATE %s SET email = $1, username = $2, first_name = $3, last_name = $4, password = $5 WHERE id = $6", usersTable)
 
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
 
-	_, err := r.db.ExecContext(dbCtx, query, user.Name, user.Surname, user.Email, user.Password, id)
+	_, err := r.db.ExecContext(dbCtx, query, user.Email, user.Username, user.FirstName, user.LastName, user.Password, user.ID)
 	if err != nil {
 		return err
 	}
@@ -78,9 +91,9 @@ func (r *UserPostgres) UpdateUser(ctx context.Context, id int64, user models.Use
 	return nil
 }
 
-func (r *UserPostgres) GetAllUsers(ctx context.Context) ([]models.UserToGet, error) {
-	query := fmt.Sprintf("SELECT id, name, surname, email FROM %s", usersTable)
-	var users []models.UserToGet
+func (r *UserPostgres) GetAllUsers(ctx context.Context) ([]models.User, error) {
+	query := fmt.Sprintf("SELECT id, email, username, first_name, last_name FROM %s", usersTable)
+	var users []models.User
 
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
@@ -90,7 +103,7 @@ func (r *UserPostgres) GetAllUsers(ctx context.Context) ([]models.UserToGet, err
 	return users, err
 }
 
-func (r *UserPostgres) DeleteUser(ctx context.Context, id int64) error {
+func (r *UserPostgres) DeleteUser(ctx context.Context, id uint64) error {
 	query := fmt.Sprintf("DELETE FROM %s WHERE id = $1", usersTable)
 
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)

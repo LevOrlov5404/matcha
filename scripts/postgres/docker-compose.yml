@@ -18,3 +18,8 @@ services:
 volumes:
   matcha-postgres:
     driver: local
+
+networks:
+  default:
+    external:
+      name: matcha

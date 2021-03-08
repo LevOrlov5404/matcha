@@ -2,21 +2,24 @@ package models
 
 type (
 	UserToCreate struct {
-		Name     string `json:"name" binding:"required"`
-		Surname  string `json:"surname" binding:"required"`
-		Email    string `json:"email" binding:"required"`
-		Password string `json:"password" binding:"required"`
+		Email     string `json:"email" binding:"required"`
+		Username  string `json:"username" binding:"required"`
+		FirstName string `json:"firstName" binding:"required"`
+		LastName  string `json:"lastName" binding:"required"`
+		Password  string `json:"password" binding:"required"`
 	}
 
 	UserToSignIn struct {
-		Email    string `json:"email" binding:"required"`
+		Username string `json:"username" binding:"required"`
 		Password string `json:"password" binding:"required"`
 	}
 
-	UserToGet struct {
-		ID      int64  `json:"id" db:"id"`
-		Name    string `json:"name" db:"name"`
-		Surname string `json:"surname" db:"surname"`
-		Email   string `json:"email" db:"email"`
+	User struct {
+		ID        uint64 `json:"id" db:"id"`
+		Email     string `json:"email" db:"email"`
+		Username  string `json:"username" db:"username"`
+		FirstName string `json:"firstName" db:"first_name"`
+		LastName  string `json:"lastName" db:"last_name"`
+		Password  string `json:"-" db:"password"`
 	}
 )

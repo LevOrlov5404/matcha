@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -25,7 +27,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to init logger: %v", err)
 	}
-	// test
 
 	db, err := repository.ConnectToDB(repository.Config{
 		Host:     cfg.DB.Address.Host,
@@ -52,7 +53,7 @@ func main() {
 
 	srv := server.NewServer(cfg, lg, services)
 	go func() {
-		if err := srv.Run(); err != nil {
+		if err := srv.Run(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			lg.Fatalf("error occurred while running http server: %v", err)
 		}
 	}()
