@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/LevOrlov5404/matcha/internal/models"
 	"github.com/jmoiron/sqlx"
@@ -22,8 +23,8 @@ type (
 	}
 )
 
-func NewRepository(db *sqlx.DB) *Repository {
+func NewRepository(db *sqlx.DB, dbTimeout time.Duration) *Repository {
 	return &Repository{
-		User: NewUserPostgres(db),
+		User: NewUserPostgres(db, dbTimeout),
 	}
 }

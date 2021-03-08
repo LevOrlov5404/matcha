@@ -42,7 +42,7 @@ func main() {
 		}
 	}()
 
-	repo := repository.NewRepository(db)
+	repo := repository.NewRepository(db, cfg.DB.Timeout.Duration())
 	services := service.NewService(repo, service.Options{
 		TokenLifetime:    cfg.JWT.TokenLifetime.Duration(),
 		SigningKey:       cfg.JWT.SigningKey,

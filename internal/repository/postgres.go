@@ -2,15 +2,12 @@ package repository
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 )
 
 const (
 	usersTable = "users"
-
-	dbTimeout = 3 * time.Second
 )
 
 type Config struct {
