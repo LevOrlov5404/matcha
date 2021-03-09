@@ -2,16 +2,16 @@ package service
 
 import (
 	"context"
-	"crypto/sha1"
 	"errors"
 	"fmt"
 	"strconv"
 	"time"
 
-	customErrs "github.com/LevOrlov5404/matcha/internal/custom-errors"
+	ierrors "github.com/LevOrlov5404/matcha/internal/errors"
 	"github.com/LevOrlov5404/matcha/internal/models"
 	"github.com/LevOrlov5404/matcha/internal/repository"
 	"github.com/dgrijalva/jwt-go"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type (
@@ -19,18 +19,16 @@ type (
 		repo          repository.User
 		tokenLifetime time.Duration
 		signingKey    string
-		passwordSalt  string
 	}
 )
 
 func NewUserService(
-	repo repository.User, tokenLifetime time.Duration, signingKey, passwordSalt string,
+	repo repository.User, tokenLifetime time.Duration, signingKey string,
 ) *UserService {
 	return &UserService{
 		repo:          repo,
 		tokenLifetime: tokenLifetime,
 		signingKey:    signingKey,
-		passwordSalt:  passwordSalt,
 	}
 }
 
@@ -41,10 +39,16 @@ func (s *UserService) CreateUser(ctx context.Context, user models.UserToCreate) 
 	}
 
 	if existingUser != nil {
-		return 0, customErrs.NewBusiness(errors.New("username is already taken"), "")
+		return 0, ierrors.NewBusiness(errors.New("username is already taken"), "")
 	}
 
-	user.Password = makePasswordHash(user.Password, s.passwordSalt)
+	hashedPassword, err := HashPassword(user.Password)
+	if err != nil {
+		return 0, ierrors.New(err)
+	}
+
+	user.Password = hashedPassword
+
 	return s.repo.CreateUser(ctx, user)
 }
 
@@ -53,7 +57,13 @@ func (s *UserService) GetUserByID(ctx context.Context, id uint64) (*models.User,
 }
 
 func (s *UserService) UpdateUser(ctx context.Context, user models.User) error {
-	user.Password = makePasswordHash(user.Password, s.passwordSalt)
+	hashedPassword, err := HashPassword(user.Password)
+	if err != nil {
+		return ierrors.New(err)
+	}
+
+	user.Password = hashedPassword
+
 	return s.repo.UpdateUser(ctx, user)
 }
 
@@ -72,11 +82,11 @@ func (s *UserService) GenerateToken(ctx context.Context, username, password stri
 	}
 
 	if user == nil {
-		return "", customErrs.NewBusiness(errors.New("user not found"), "")
+		return "", ierrors.NewBusiness(errors.New("user not found"), "")
 	}
 
-	if user.Password != makePasswordHash(password, s.passwordSalt) {
-		return "", customErrs.NewBusiness(errors.New("wrong password"), "")
+	if !CheckPasswordHash(user.Password, password) {
+		return "", ierrors.NewBusiness(errors.New("wrong password"), "")
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.StandardClaims{
@@ -110,9 +120,12 @@ func (s *UserService) ParseToken(accessToken string) (uint64, error) {
 	return userID, nil
 }
 
-func makePasswordHash(password, salt string) string {
-	hash := sha1.New() // ToDo: change to secure hash
-	hash.Write([]byte(password))
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	return string(bytes), err
+}
 
-	return fmt.Sprintf("%x", hash.Sum([]byte(salt)))
+func CheckPasswordHash(hash, password string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }

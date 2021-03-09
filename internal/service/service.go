@@ -24,16 +24,13 @@ type (
 	}
 
 	Options struct {
-		TokenLifetime    time.Duration
-		SigningKey       string
-		UserPasswordSalt string
+		TokenLifetime time.Duration
+		SigningKey    string
 	}
 )
 
 func NewService(repo *repository.Repository, options Options) *Service {
 	return &Service{
-		User: NewUserService(
-			repo.User, options.TokenLifetime, options.SigningKey, options.UserPasswordSalt,
-		),
+		User: NewUserService(repo.User, options.TokenLifetime, options.SigningKey),
 	}
 }

@@ -25,7 +25,7 @@ func (l DefaultFormatter) ColoredLevel(entry *logrus.Entry) string {
 	case logrus.ErrorLevel:
 		return aurora.Red(levelName).String()
 	case logrus.FatalLevel:
-		return aurora.Red(levelName).String()
+		return aurora.BrightRed(levelName).String()
 	default:
 		return entry.Level.String()
 	}

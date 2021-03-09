@@ -46,9 +46,8 @@ func main() {
 
 	repo := repository.NewRepository(db, cfg.DB.Timeout.Duration())
 	services := service.NewService(repo, service.Options{
-		TokenLifetime:    cfg.JWT.TokenLifetime.Duration(),
-		SigningKey:       cfg.JWT.SigningKey,
-		UserPasswordSalt: cfg.UserPasswordSalt,
+		TokenLifetime: cfg.JWT.TokenLifetime.Duration(),
+		SigningKey:    cfg.JWT.SigningKey,
 	})
 
 	srv := server.NewServer(cfg, lg, services)

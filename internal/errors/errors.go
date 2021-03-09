@@ -1,4 +1,4 @@
-package customerrors
+package errors
 
 type ErrorLevel int
 

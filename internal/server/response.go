@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	customErrs "github.com/LevOrlov5404/matcha/internal/custom-errors"
+	ierrors "github.com/LevOrlov5404/matcha/internal/errors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -13,7 +13,7 @@ type errorResponse struct {
 }
 
 func (s *Server) newErrorResponse(c *gin.Context, statusCode int, err error) {
-	if customErr, ok := err.(*customErrs.Error); ok {
+	if customErr, ok := err.(*ierrors.Error); ok {
 		s.handleCustomError(c, customErr)
 		return
 	}
@@ -24,18 +24,18 @@ func (s *Server) newErrorResponse(c *gin.Context, statusCode int, err error) {
 		Message: err.Error(),
 	}
 	if statusCode >= 400 && statusCode < 500 {
-		errResp.Detail = customErrs.DetailBusiness
+		errResp.Detail = ierrors.DetailBusiness
 	} else {
-		errResp.Detail = customErrs.DetailServer
+		errResp.Detail = ierrors.DetailServer
 	}
 
 	c.AbortWithStatusJSON(statusCode, errResp)
 }
 
-func (s *Server) handleCustomError(c *gin.Context, err *customErrs.Error) {
+func (s *Server) handleCustomError(c *gin.Context, err *ierrors.Error) {
 	var statusCode int
 
-	if err.Level == customErrs.Business {
+	if err.Level == ierrors.Business {
 		statusCode = http.StatusBadRequest
 	} else {
 		s.log.Error(err)

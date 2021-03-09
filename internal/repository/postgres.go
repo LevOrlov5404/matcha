@@ -3,7 +3,7 @@ package repository
 import (
 	"fmt"
 
-	customErrs "github.com/LevOrlov5404/matcha/internal/custom-errors"
+	ierrors "github.com/LevOrlov5404/matcha/internal/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 )
@@ -41,10 +41,10 @@ func initConnectionString(cfg Config) string {
 func getDBError(err error) error {
 	if err, ok := err.(*pq.Error); ok {
 		if err.Code.Class() < "50" { // business error
-			return customErrs.NewBusiness(err, err.Detail)
+			return ierrors.NewBusiness(err, err.Detail)
 		}
 
-		return customErrs.New(err)
+		return ierrors.New(err)
 	}
 
 	return err

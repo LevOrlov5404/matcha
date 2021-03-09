@@ -9,11 +9,10 @@ import (
 
 type (
 	Config struct {
-		Address          AddressConfig `yaml:"address"`
-		Logger           Logger        `yaml:"logger"`
-		DB               PostgresDB    `yaml:"db"`
-		JWT              JWT           `yaml:"jwt"`
-		UserPasswordSalt string        `yaml:"userPasswordSalt" env:"USER_PASSWORD_SALT,default=test"`
+		Address AddressConfig `yaml:"address"`
+		Logger  Logger        `yaml:"logger"`
+		DB      PostgresDB    `yaml:"db"`
+		JWT     JWT           `yaml:"jwt"`
 	}
 	Logger struct {
 		Level  string `yaml:"level" env:"LOGGER_LEVEL,default=info"`
