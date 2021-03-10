@@ -41,13 +41,15 @@ func NewServer(cfg *config.Config, log *logrus.Logger, services *service.Service
 func (s *Server) InitRoutes() *gin.Engine {
 	router := gin.New()
 
+	router.Use(s.InitMiddleware)
+
 	auth := router.Group("/auth")
 	{
 		auth.POST("/sigh-up", s.CreateUser)
 		auth.POST("/sigh-in", s.SignIn)
 	}
 
-	api := router.Group("/api/v1", s.UserIdentity)
+	api := router.Group("/api/v1", s.UserIdentityMiddleware)
 	{
 		users := api.Group("/users")
 		{

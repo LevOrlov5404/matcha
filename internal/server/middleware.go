@@ -4,16 +4,37 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
 const (
 	headerAuth = "Authorization"
 	ctxUser    = "userID"
+
+	keyLogEntry = "log-entry"
 )
 
-func (s *Server) UserIdentity(c *gin.Context) {
+func (s *Server) InitMiddleware(c *gin.Context) {
+	start := time.Now()
+
+	requestID := uuid.New().String()
+	logEntry := logrus.NewEntry(s.log).WithField("request-id", requestID)
+	logEntry.Debugf("Start request at %s", start.Format(time.RFC1123Z))
+
+	c.Set(keyLogEntry, logEntry)
+
+	c.Next()
+
+	logEntry = getLogEntry(c)
+	logEntry.WithField("elapsed", time.Since(start).String()).
+		Debugf("Complete request at %s", time.Now().Format(time.RFC1123Z))
+}
+
+func (s *Server) UserIdentityMiddleware(c *gin.Context) {
 	header := c.GetHeader(headerAuth)
 	if header == "" {
 		s.newErrorResponse(c, http.StatusUnauthorized, errors.New("empty auth header"))
@@ -47,4 +68,17 @@ func getUserID(c *gin.Context) (int64, error) {
 	}
 
 	return idInt, nil
+}
+
+func setHandlerNameToLogEntry(c *gin.Context, handlerName string) {
+	logEntryValue, _ := c.Get(keyLogEntry)
+
+	logEntry := logEntryValue.(*logrus.Entry).WithField("method", handlerName)
+	c.Set(keyLogEntry, logEntry)
+}
+
+func getLogEntry(c *gin.Context) *logrus.Entry {
+	logEntryValue, _ := c.Get(keyLogEntry)
+
+	return logEntryValue.(*logrus.Entry)
 }

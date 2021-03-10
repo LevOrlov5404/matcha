@@ -2,15 +2,17 @@ package server
 
 import (
 	"errors"
-	ierrors "github.com/LevOrlov5404/matcha/internal/errors"
 	"net/http"
 	"strconv"
 
+	ierrors "github.com/LevOrlov5404/matcha/internal/errors"
 	"github.com/LevOrlov5404/matcha/internal/models"
 	"github.com/gin-gonic/gin"
 )
 
 func (s *Server) CreateUser(c *gin.Context) {
+	setHandlerNameToLogEntry(c, "CreateUser")
+
 	var user models.UserToCreate
 	if err := c.BindJSON(&user); err != nil {
 		s.newErrorResponse(c, http.StatusBadRequest, ierrors.NewBusiness(err, ""))
@@ -29,6 +31,8 @@ func (s *Server) CreateUser(c *gin.Context) {
 }
 
 func (s *Server) SignIn(c *gin.Context) {
+	setHandlerNameToLogEntry(c, "SignIn")
+
 	var user models.UserToSignIn
 	if err := c.BindJSON(&user); err != nil {
 		s.newErrorResponse(c, http.StatusBadRequest, ierrors.NewBusiness(err, ""))
@@ -47,6 +51,8 @@ func (s *Server) SignIn(c *gin.Context) {
 }
 
 func (s *Server) GetUserByID(c *gin.Context) {
+	setHandlerNameToLogEntry(c, "GetUserByID")
+
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		s.newErrorResponse(
@@ -70,6 +76,8 @@ func (s *Server) GetUserByID(c *gin.Context) {
 }
 
 func (s *Server) UpdateUser(c *gin.Context) {
+	setHandlerNameToLogEntry(c, "UpdateUser")
+
 	var user models.User
 	if err := c.BindJSON(&user); err != nil {
 		s.newErrorResponse(c, http.StatusBadRequest, ierrors.NewBusiness(err, ""))
@@ -85,6 +93,8 @@ func (s *Server) UpdateUser(c *gin.Context) {
 }
 
 func (s *Server) GetAllUsers(c *gin.Context) {
+	setHandlerNameToLogEntry(c, "GetAllUsers")
+
 	users, err := s.services.User.GetAllUsers(c)
 	if err != nil {
 		s.newErrorResponse(c, http.StatusInternalServerError, err)
@@ -100,6 +110,8 @@ func (s *Server) GetAllUsers(c *gin.Context) {
 }
 
 func (s *Server) DeleteUser(c *gin.Context) {
+	setHandlerNameToLogEntry(c, "DeleteUser")
+
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		s.newErrorResponse(
