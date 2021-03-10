@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	ierrors "github.com/LevOrlov5404/matcha/internal/errors"
 	"net/http"
 	"strconv"
 
@@ -12,7 +13,7 @@ import (
 func (s *Server) CreateUser(c *gin.Context) {
 	var user models.UserToCreate
 	if err := c.BindJSON(&user); err != nil {
-		s.newErrorResponse(c, http.StatusBadRequest, err)
+		s.newErrorResponse(c, http.StatusBadRequest, ierrors.NewBusiness(err, ""))
 		return
 	}
 
@@ -30,7 +31,7 @@ func (s *Server) CreateUser(c *gin.Context) {
 func (s *Server) SignIn(c *gin.Context) {
 	var user models.UserToSignIn
 	if err := c.BindJSON(&user); err != nil {
-		s.newErrorResponse(c, http.StatusBadRequest, err)
+		s.newErrorResponse(c, http.StatusBadRequest, ierrors.NewBusiness(err, ""))
 		return
 	}
 
@@ -48,7 +49,9 @@ func (s *Server) SignIn(c *gin.Context) {
 func (s *Server) GetUserByID(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		s.newErrorResponse(c, http.StatusBadRequest, errors.New("invalid id param"))
+		s.newErrorResponse(
+			c, http.StatusBadRequest, ierrors.NewBusiness(errors.New("invalid id param"), ""),
+		)
 		return
 	}
 
@@ -69,7 +72,7 @@ func (s *Server) GetUserByID(c *gin.Context) {
 func (s *Server) UpdateUser(c *gin.Context) {
 	var user models.User
 	if err := c.BindJSON(&user); err != nil {
-		s.newErrorResponse(c, http.StatusBadRequest, err)
+		s.newErrorResponse(c, http.StatusBadRequest, ierrors.NewBusiness(err, ""))
 		return
 	}
 
@@ -99,7 +102,9 @@ func (s *Server) GetAllUsers(c *gin.Context) {
 func (s *Server) DeleteUser(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		s.newErrorResponse(c, http.StatusBadRequest, errors.New("invalid id param"))
+		s.newErrorResponse(
+			c, http.StatusBadRequest, ierrors.NewBusiness(errors.New("invalid id param"), ""),
+		)
 		return
 	}
 

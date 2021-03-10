@@ -10,10 +10,10 @@ import (
 	"syscall"
 
 	"github.com/LevOrlov5404/matcha/internal/config"
-	"github.com/LevOrlov5404/matcha/internal/logger"
 	"github.com/LevOrlov5404/matcha/internal/repository"
 	"github.com/LevOrlov5404/matcha/internal/server"
 	"github.com/LevOrlov5404/matcha/internal/service"
+	"github.com/LevOrlov5404/matcha/pkg/logger"
 	_ "github.com/lib/pq"
 )
 

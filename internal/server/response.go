@@ -23,7 +23,7 @@ func (s *Server) newErrorResponse(c *gin.Context, statusCode int, err error) {
 	errResp := &errorResponse{
 		Message: err.Error(),
 	}
-	if statusCode >= 400 && statusCode < 500 {
+	if statusCode >= http.StatusBadRequest && statusCode < http.StatusInternalServerError {
 		errResp.Detail = ierrors.DetailBusiness
 	} else {
 		errResp.Detail = ierrors.DetailServer
@@ -36,10 +36,10 @@ func (s *Server) handleCustomError(c *gin.Context, err *ierrors.Error) {
 	var statusCode int
 
 	if err.Level == ierrors.Business {
+		s.log.Debug(err)
 		statusCode = http.StatusBadRequest
 	} else {
 		s.log.Error(err)
-
 		statusCode = http.StatusInternalServerError
 	}
 

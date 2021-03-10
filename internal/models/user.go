@@ -15,11 +15,11 @@ type (
 	}
 
 	User struct {
-		ID        uint64 `json:"id" db:"id"`
-		Email     string `json:"email" db:"email"`
-		Username  string `json:"username" db:"username"`
-		FirstName string `json:"firstName" db:"first_name"`
-		LastName  string `json:"lastName" db:"last_name"`
+		ID        uint64 `json:"id" binding:"required" db:"id"`
+		Email     string `json:"email" binding:"required" db:"email"`
+		Username  string `json:"username" binding:"required" db:"username"`
+		FirstName string `json:"firstName" binding:"required" db:"first_name"`
+		LastName  string `json:"lastName" binding:"required" db:"last_name"`
 		Password  string `json:"-" db:"password"`
 	}
 )
