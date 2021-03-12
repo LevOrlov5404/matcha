@@ -1,4 +1,4 @@
-package repository
+package user_postgres
 
 import (
 	"context"
@@ -7,8 +7,14 @@ import (
 	"fmt"
 	"time"
 
+	iErrs "github.com/LevOrlov5404/matcha/internal/errors"
 	"github.com/LevOrlov5404/matcha/internal/models"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
+)
+
+const (
+	usersTable = "users"
 )
 
 type UserPostgres struct {
@@ -46,7 +52,8 @@ values ($1, $2, $3, $4, $5) RETURNING id`, usersTable)
 }
 
 func (r *UserPostgres) GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
-	query := fmt.Sprintf("SELECT id, email, username, first_name, last_name, password FROM %s WHERE username=$1", usersTable)
+	query := fmt.Sprintf(`
+SELECT id, email, username, first_name, last_name, password FROM %s WHERE username=$1`, usersTable)
 	var user models.User
 
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
@@ -62,7 +69,8 @@ func (r *UserPostgres) GetUserByUsername(ctx context.Context, username string) (
 }
 
 func (r *UserPostgres) GetUserByID(ctx context.Context, id uint64) (*models.User, error) {
-	query := fmt.Sprintf("SELECT id, email, username, first_name, last_name, password FROM %s WHERE id=$1", usersTable)
+	query := fmt.Sprintf(`
+SELECT id, email, username, first_name, last_name, password, is_email_confirmed FROM %s WHERE id=$1`, usersTable)
 	var user models.User
 
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
@@ -78,7 +86,8 @@ func (r *UserPostgres) GetUserByID(ctx context.Context, id uint64) (*models.User
 }
 
 func (r *UserPostgres) UpdateUser(ctx context.Context, user models.User) error {
-	query := fmt.Sprintf("UPDATE %s SET email = $1, username = $2, first_name = $3, last_name = $4, password = $5 WHERE id = $6", usersTable)
+	query := fmt.Sprintf(`
+UPDATE %s SET email = $1, username = $2, first_name = $3, last_name = $4, password = $5 WHERE id = $6`, usersTable)
 
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
@@ -92,7 +101,8 @@ func (r *UserPostgres) UpdateUser(ctx context.Context, user models.User) error {
 }
 
 func (r *UserPostgres) GetAllUsers(ctx context.Context) ([]models.User, error) {
-	query := fmt.Sprintf("SELECT id, email, username, first_name, last_name FROM %s", usersTable)
+	query := fmt.Sprintf(`
+SELECT id, email, username, first_name, last_name, is_email_confirmed FROM %s`, usersTable)
 	var users []models.User
 
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
@@ -104,7 +114,7 @@ func (r *UserPostgres) GetAllUsers(ctx context.Context) ([]models.User, error) {
 }
 
 func (r *UserPostgres) DeleteUser(ctx context.Context, id uint64) error {
-	query := fmt.Sprintf("DELETE FROM %s WHERE id = $1", usersTable)
+	query := fmt.Sprintf(`DELETE FROM %s WHERE id = $1`, usersTable)
 
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
@@ -115,4 +125,16 @@ func (r *UserPostgres) DeleteUser(ctx context.Context, id uint64) error {
 	}
 
 	return nil
+}
+
+func getDBError(err error) error {
+	if err, ok := err.(*pq.Error); ok {
+		if err.Code.Class() < "50" { // business error
+			return iErrs.NewBusiness(err, err.Detail)
+		}
+
+		return iErrs.New(err)
+	}
+
+	return err
 }

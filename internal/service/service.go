@@ -2,13 +2,16 @@ package service
 
 import (
 	"context"
-	"time"
 
+	"github.com/LevOrlov5404/matcha/internal/config"
 	"github.com/LevOrlov5404/matcha/internal/models"
 	"github.com/LevOrlov5404/matcha/internal/repository"
 )
 
 type (
+	RandomTokenGenerator interface {
+		Generate(length, numDigits, numSymbols int, noUpper, allowRepeat bool) (string, error)
+	}
 	User interface {
 		CreateUser(ctx context.Context, user models.UserToCreate) (uint64, error)
 		GetUserByID(ctx context.Context, id uint64) (*models.User, error)
@@ -18,19 +21,27 @@ type (
 		GenerateToken(ctx context.Context, username, password string) (string, error)
 		ParseToken(token string) (uint64, error)
 	}
-
+	Verification interface {
+		CreateEmailConfirmToken(clientID uint64) (string, error)
+	}
+	Mailer interface {
+		SendEmailConfirm(toEmail, token string) error
+	}
 	Service struct {
 		User
-	}
-
-	Options struct {
-		TokenLifetime time.Duration
-		SigningKey    string
+		Verification
+		Mailer
 	}
 )
 
-func NewService(repo *repository.Repository, options Options) *Service {
+func NewService(
+	cfg *config.Config, repo *repository.Repository, generator RandomTokenGenerator,
+) *Service {
 	return &Service{
-		User: NewUserService(repo.User, options.TokenLifetime, options.SigningKey),
+		User: NewUserService(
+			repo.User, cfg.JWT.AccessTokenLifetime.Duration(), cfg.JWT.SigningKey,
+		),
+		Verification: NewVerificationService(repo.Cache, generator),
+		Mailer:       NewMailerService(cfg.Mailer),
 	}
 }

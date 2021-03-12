@@ -11,10 +11,18 @@ import (
 
 	"github.com/LevOrlov5404/matcha/internal/config"
 	"github.com/LevOrlov5404/matcha/internal/repository"
+	userPostgres "github.com/LevOrlov5404/matcha/internal/repository/user-postgres"
 	"github.com/LevOrlov5404/matcha/internal/server"
 	"github.com/LevOrlov5404/matcha/internal/service"
 	"github.com/LevOrlov5404/matcha/pkg/logger"
 	_ "github.com/lib/pq"
+	"github.com/sethvargo/go-password/password"
+)
+
+const (
+	passwordAllowedLowerLetters = "abcdefghijklmnopqrstuvwxyz"
+	passwordAllowedUpperLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	passwordAllowedDigits       = "0123456789"
 )
 
 func main() {
@@ -28,13 +36,7 @@ func main() {
 		log.Fatalf("failed to init logger: %v", err)
 	}
 
-	db, err := repository.ConnectToDB(repository.Config{
-		Host:     cfg.DB.Address.Host,
-		Port:     cfg.DB.Address.Port,
-		User:     cfg.DB.User,
-		Password: cfg.DB.Password,
-		Database: cfg.DB.Database,
-	})
+	db, err := userPostgres.ConnectToDB(cfg)
 	if err != nil {
 		lg.Fatalf("failed to connect to db: %v", err)
 	}
@@ -44,11 +46,17 @@ func main() {
 		}
 	}()
 
-	repo := repository.NewRepository(db, cfg.DB.Timeout.Duration())
-	services := service.NewService(repo, service.Options{
-		TokenLifetime: cfg.JWT.TokenLifetime.Duration(),
-		SigningKey:    cfg.JWT.SigningKey,
+	randomSymbolsGenerator, err := password.NewGenerator(&password.GeneratorInput{
+		LowerLetters: passwordAllowedLowerLetters,
+		UpperLetters: passwordAllowedUpperLetters,
+		Digits:       passwordAllowedDigits,
 	})
+	if err != nil {
+		log.Fatalf("failed to create random symbols generator: %v", err)
+	}
+
+	repo := repository.NewRepository(cfg, lg, db)
+	services := service.NewService(cfg, repo, randomSymbolsGenerator)
 
 	srv := server.NewServer(cfg, lg, services)
 	go func() {

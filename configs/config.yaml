@@ -1,10 +1,22 @@
 address: 0.0.0.0:8080
 
-db:
+postgresDB:
   connMaxLifetime: 10m
   maxOpenConns: 10
   maxIdleConns: 10
   timeout: 3s
 
+redis:
+  proto: tcp
+  maxActive: 200
+  maxIdle: 100
+  idleTimeout: 240s
+
 jwt:
-  tokenLifetime: 2h
+  accessTokenLifetime: 2h
+
+verification:
+  emailConfirmTokenLifetime: 24h
+
+mailer:
+  timeout: 3s

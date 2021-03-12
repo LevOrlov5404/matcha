@@ -2,10 +2,13 @@ package repository
 
 import (
 	"context"
-	"time"
 
+	"github.com/LevOrlov5404/matcha/internal/config"
 	"github.com/LevOrlov5404/matcha/internal/models"
+	cacheRedis "github.com/LevOrlov5404/matcha/internal/repository/cache-redis"
+	userPostgres "github.com/LevOrlov5404/matcha/internal/repository/user-postgres"
 	"github.com/jmoiron/sqlx"
+	"github.com/sirupsen/logrus"
 )
 
 type (
@@ -17,14 +20,25 @@ type (
 		GetAllUsers(ctx context.Context) ([]models.User, error)
 		DeleteUser(ctx context.Context, id uint64) error
 	}
-
+	Cache interface {
+		PutEmailConfirmToken(clientID uint64, token string) error
+	}
 	Repository struct {
 		User
+		Cache
 	}
 )
 
-func NewRepository(db *sqlx.DB, dbTimeout time.Duration) *Repository {
+func NewRepository(
+	cfg *config.Config, log *logrus.Logger, db *sqlx.DB,
+) *Repository {
+	cacheEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "cacheRedis"})
+	cacheOptions := cacheRedis.Options{
+		EmailConfirmTokenLifetime: int(cfg.Verification.EmailConfirmTokenLifetime.Duration().Seconds()),
+	}
+
 	return &Repository{
-		User: NewUserPostgres(db, dbTimeout),
+		User:  userPostgres.NewUserPostgres(db, cfg.PostgresDB.Timeout.Duration()),
+		Cache: cacheRedis.New(cfg.Redis, cacheEntry, cacheOptions),
 	}
 }

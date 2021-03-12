@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	ierrors "github.com/LevOrlov5404/matcha/internal/errors"
+	iErrs "github.com/LevOrlov5404/matcha/internal/errors"
 	"github.com/LevOrlov5404/matcha/internal/models"
 	"github.com/LevOrlov5404/matcha/internal/repository"
 	"github.com/dgrijalva/jwt-go"
@@ -16,9 +16,9 @@ import (
 
 type (
 	UserService struct {
-		repo          repository.User
-		tokenLifetime time.Duration
-		signingKey    string
+		repo                repository.User
+		accessTokenLifetime time.Duration
+		signingKey          string
 	}
 )
 
@@ -26,9 +26,9 @@ func NewUserService(
 	repo repository.User, tokenLifetime time.Duration, signingKey string,
 ) *UserService {
 	return &UserService{
-		repo:          repo,
-		tokenLifetime: tokenLifetime,
-		signingKey:    signingKey,
+		repo:                repo,
+		accessTokenLifetime: tokenLifetime,
+		signingKey:          signingKey,
 	}
 }
 
@@ -39,12 +39,12 @@ func (s *UserService) CreateUser(ctx context.Context, user models.UserToCreate) 
 	}
 
 	if existingUser != nil {
-		return 0, ierrors.NewBusiness(errors.New("username is already taken"), "")
+		return 0, iErrs.NewBusiness(errors.New("username is already taken"), "")
 	}
 
 	hashedPassword, err := HashPassword(user.Password)
 	if err != nil {
-		return 0, ierrors.New(err)
+		return 0, iErrs.New(err)
 	}
 
 	user.Password = hashedPassword
@@ -59,7 +59,7 @@ func (s *UserService) GetUserByID(ctx context.Context, id uint64) (*models.User,
 func (s *UserService) UpdateUser(ctx context.Context, user models.User) error {
 	hashedPassword, err := HashPassword(user.Password)
 	if err != nil {
-		return ierrors.New(err)
+		return iErrs.New(err)
 	}
 
 	user.Password = hashedPassword
@@ -82,15 +82,15 @@ func (s *UserService) GenerateToken(ctx context.Context, username, password stri
 	}
 
 	if user == nil {
-		return "", ierrors.NewBusiness(errors.New("user not found"), "")
+		return "", iErrs.NewBusiness(errors.New("user not found"), "")
 	}
 
 	if !CheckPasswordHash(user.Password, password) {
-		return "", ierrors.NewBusiness(errors.New("wrong password"), "")
+		return "", iErrs.NewBusiness(errors.New("wrong password"), "")
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.StandardClaims{
-		ExpiresAt: time.Now().Add(s.tokenLifetime).Unix(),
+		ExpiresAt: time.Now().Add(s.accessTokenLifetime).Unix(),
 		IssuedAt:  time.Now().Unix(),
 		Subject:   strconv.FormatUint(user.ID, 10),
 	})

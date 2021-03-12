@@ -13,14 +13,18 @@ import (
 
 const timeout = 10 * time.Second
 
-type Server struct {
-	cfg        *config.Config
-	log        *logrus.Logger
-	services   *service.Service
-	httpServer *http.Server
-}
+type (
+	Server struct {
+		cfg        *config.Config
+		log        *logrus.Logger
+		services   *service.Service
+		httpServer *http.Server
+	}
+)
 
-func NewServer(cfg *config.Config, log *logrus.Logger, services *service.Service) *Server {
+func NewServer(
+	cfg *config.Config, log *logrus.Logger, services *service.Service,
+) *Server {
 	s := &Server{
 		cfg:      cfg,
 		log:      log,

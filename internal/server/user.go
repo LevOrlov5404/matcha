@@ -1,13 +1,13 @@
 package server
 
 import (
-	"errors"
 	"net/http"
 	"strconv"
 
-	ierrors "github.com/LevOrlov5404/matcha/internal/errors"
+	iErrs "github.com/LevOrlov5404/matcha/internal/errors"
 	"github.com/LevOrlov5404/matcha/internal/models"
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
 )
 
 func (s *Server) CreateUser(c *gin.Context) {
@@ -15,12 +15,26 @@ func (s *Server) CreateUser(c *gin.Context) {
 
 	var user models.UserToCreate
 	if err := c.BindJSON(&user); err != nil {
-		s.newErrorResponse(c, http.StatusBadRequest, ierrors.NewBusiness(err, ""))
+		s.newErrorResponse(c, http.StatusBadRequest, iErrs.NewBusiness(err, ""))
 		return
 	}
 
-	id, err := s.services.User.CreateUser(c, user)
+	//id, err := s.services.User.CreateUser(c, user)
+	//if err != nil {
+	//	s.newErrorResponse(c, http.StatusInternalServerError, err)
+	//	return
+	//}
+
+	var id uint64 = 0
+
+	emailConfirmToken, err := s.services.Verification.CreateEmailConfirmToken(id)
 	if err != nil {
+		s.newErrorResponse(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	// send token by email
+	if err := s.services.Mailer.SendEmailConfirm(user.Email, emailConfirmToken); err != nil {
 		s.newErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -35,7 +49,7 @@ func (s *Server) SignIn(c *gin.Context) {
 
 	var user models.UserToSignIn
 	if err := c.BindJSON(&user); err != nil {
-		s.newErrorResponse(c, http.StatusBadRequest, ierrors.NewBusiness(err, ""))
+		s.newErrorResponse(c, http.StatusBadRequest, iErrs.NewBusiness(err, ""))
 		return
 	}
 
@@ -56,7 +70,7 @@ func (s *Server) GetUserByID(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		s.newErrorResponse(
-			c, http.StatusBadRequest, ierrors.NewBusiness(errors.New("invalid id param"), ""),
+			c, http.StatusBadRequest, iErrs.NewBusiness(errors.New("invalid id param"), ""),
 		)
 		return
 	}
@@ -80,7 +94,7 @@ func (s *Server) UpdateUser(c *gin.Context) {
 
 	var user models.User
 	if err := c.BindJSON(&user); err != nil {
-		s.newErrorResponse(c, http.StatusBadRequest, ierrors.NewBusiness(err, ""))
+		s.newErrorResponse(c, http.StatusBadRequest, iErrs.NewBusiness(err, ""))
 		return
 	}
 
@@ -115,7 +129,7 @@ func (s *Server) DeleteUser(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		s.newErrorResponse(
-			c, http.StatusBadRequest, ierrors.NewBusiness(errors.New("invalid id param"), ""),
+			c, http.StatusBadRequest, iErrs.NewBusiness(errors.New("invalid id param"), ""),
 		)
 		return
 	}

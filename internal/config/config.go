@@ -9,17 +9,20 @@ import (
 
 type (
 	Config struct {
-		Address AddressConfig `yaml:"address"`
-		Logger  Logger        `yaml:"logger"`
-		DB      PostgresDB    `yaml:"db"`
-		JWT     JWT           `yaml:"jwt"`
+		Address      AddressConfig `yaml:"address"`
+		Logger       Logger        `yaml:"logger"`
+		PostgresDB   PostgresDB    `yaml:"postgresDB"`
+		Redis        Redis         `yaml:"redis"`
+		JWT          JWT           `yaml:"jwt"`
+		Verification Verification  `yaml:"verification"`
+		Mailer       Mailer        `yaml:"mailer"`
 	}
 	Logger struct {
 		Level  string `yaml:"level" env:"LOGGER_LEVEL,default=info"`
 		Format string `yaml:"format" env:"LOGGER_FORMAT,default=default"`
 	}
 	PostgresDB struct {
-		Address         AddressConfig  `yaml:"host" env:"PG_ADDRESS,default=0.0.0.0:5432"`
+		Address         AddressConfig  `yaml:"address" env:"PG_ADDRESS,default=0.0.0.0:5432"`
 		User            string         `yaml:"user" env:"PG_USER,default=postgres"`
 		Password        string         `yaml:"password" env:"PG_PASSWORD,default=123"`
 		Database        string         `yaml:"name" env:"PG_DATABASE,default=postgres"`
@@ -28,9 +31,25 @@ type (
 		MaxIdleConns    int            `yaml:"maxIdleConns"`
 		Timeout         DurationConfig `yaml:"timeout"`
 	}
+	Redis struct {
+		Address     AddressConfig  `yaml:"address" env:"REDIS_ADDRESS,default=0.0.0.0:6379"`
+		Proto       string         `yaml:"proto"`
+		MaxActive   int            `yaml:"maxActive"`
+		MaxIdle     int            `yaml:"maxIdle"`
+		IdleTimeout DurationConfig `yaml:"idleTimeout"`
+	}
 	JWT struct {
-		TokenLifetime DurationConfig `yaml:"tokenLifetime"`
-		SigningKey    string         `yaml:"signingKey" env:"JWT_SIGNING_KEY,default=test"`
+		AccessTokenLifetime DurationConfig `yaml:"accessTokenLifetime"`
+		SigningKey          string         `yaml:"signingKey" env:"JWT_SIGNING_KEY,default=test"`
+	}
+	Verification struct {
+		EmailConfirmTokenLifetime DurationConfig `yaml:"emailConfirmTokenLifetime"`
+	}
+	Mailer struct {
+		ServerAddress AddressConfig  `yaml:"serverAddress" env:"EMAIL_SERVER_ADDRESS,default=smtp.gmail.com:587"`
+		Username      string         `yaml:"username" env:"EMAIL_USERNAME,default=test"`
+		Password      string         `yaml:"password" env:"EMAIL_PASSWORD,default=test"`
+		Timeout       DurationConfig `yaml:"timeout"`
 	}
 )
 
