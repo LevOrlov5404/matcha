@@ -19,9 +19,12 @@ type (
 		UpdateUser(ctx context.Context, user models.User) error
 		GetAllUsers(ctx context.Context) ([]models.User, error)
 		DeleteUser(ctx context.Context, id uint64) error
+		ConfirmEmail(ctx context.Context, id uint64) error
 	}
 	Cache interface {
-		PutEmailConfirmToken(clientID uint64, token string) error
+		PutEmailConfirmToken(userID uint64, token string) error
+		GetEmailConfirmTokenData(token string) (userID uint64, err error)
+		DeleteEmailConfirmToken(token string) error
 	}
 	Repository struct {
 		User

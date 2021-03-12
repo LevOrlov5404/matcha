@@ -53,6 +53,8 @@ func (s *Server) InitRoutes() *gin.Engine {
 		auth.POST("/sigh-in", s.SignIn)
 	}
 
+	router.POST("/confirm-email", s.ConfirmEmail)
+
 	api := router.Group("/api/v1", s.UserIdentityMiddleware)
 	{
 		users := api.Group("/users")

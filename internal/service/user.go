@@ -75,6 +75,10 @@ func (s *UserService) DeleteUser(ctx context.Context, id uint64) error {
 	return s.repo.DeleteUser(ctx, id)
 }
 
+func (s *UserService) ConfirmEmail(ctx context.Context, id uint64) error {
+	return s.repo.ConfirmEmail(ctx, id)
+}
+
 func (s *UserService) GenerateToken(ctx context.Context, username, password string) (string, error) {
 	user, err := s.repo.GetUserByUsername(ctx, username)
 	if err != nil {

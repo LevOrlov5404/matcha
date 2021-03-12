@@ -18,11 +18,13 @@ type (
 		UpdateUser(ctx context.Context, user models.User) error
 		GetAllUsers(ctx context.Context) ([]models.User, error)
 		DeleteUser(ctx context.Context, id uint64) error
+		ConfirmEmail(ctx context.Context, id uint64) error
 		GenerateToken(ctx context.Context, username, password string) (string, error)
 		ParseToken(token string) (uint64, error)
 	}
 	Verification interface {
-		CreateEmailConfirmToken(clientID uint64) (string, error)
+		CreateEmailConfirmToken(userID uint64) (string, error)
+		VerifyEmailConfirmToken(emailConfirmToken string) (userID uint64, err error)
 	}
 	Mailer interface {
 		SendEmailConfirm(toEmail, token string) error

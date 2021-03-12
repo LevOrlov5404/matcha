@@ -59,7 +59,7 @@ func (r *Redis) getConnect() (redis.Conn, error) {
 	return c, nil
 }
 
-func (r *Redis) PutEmailConfirmToken(clientID uint64, token string) error {
+func (r *Redis) PutEmailConfirmToken(userID uint64, token string) error {
 	conn, err := r.getConnect()
 	if err != nil {
 		return err
@@ -71,7 +71,7 @@ func (r *Redis) PutEmailConfirmToken(clientID uint64, token string) error {
 	}()
 
 	if err = conn.Send("SETEX", emailConfirmationTokenKeyPrefix+token,
-		r.options.EmailConfirmTokenLifetime, clientID,
+		r.options.EmailConfirmTokenLifetime, userID,
 	); err != nil {
 		return err
 	}
@@ -79,45 +79,39 @@ func (r *Redis) PutEmailConfirmToken(clientID uint64, token string) error {
 	return nil
 }
 
-//func (r *Redis) GetSession(refreshToken string) (*models.Session, error) {
-//	conn, err := r.getConnect()
-//	if err != nil {
-//		return nil, err
-//	}
-//	defer func() {
-//		if err := conn.Close(); err != nil {
-//			r.log.Error(err)
-//		}
-//	}()
-//
-//	resp, err := redis.String(conn.Do("GET", sessionKeyPrefix+refreshToken))
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	session := &models.Session{}
-//	err = json.Unmarshal([]byte(resp), &session)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	return session, nil
-//}
+func (r *Redis) GetEmailConfirmTokenData(token string) (userID uint64, err error) {
+	conn, err := r.getConnect()
+	if err != nil {
+		return 0, err
+	}
+	defer func() {
+		if err := conn.Close(); err != nil {
+			r.log.Error(err)
+		}
+	}()
 
-//func (r *Redis) DeleteSession(refreshToken string) error {
-//	conn, err := r.getConnect()
-//	if err != nil {
-//		return err
-//	}
-//	defer func() {
-//		if err := conn.Close(); err != nil {
-//			r.log.Error(err)
-//		}
-//	}()
-//
-//	if _, err = conn.Do("DEL", sessionKeyPrefix+refreshToken); err != nil {
-//		return err
-//	}
-//
-//	return nil
-//}
+	userID, err = redis.Uint64(conn.Do("GET", emailConfirmationTokenKeyPrefix+token))
+	if err != nil {
+		return 0, err
+	}
+
+	return userID, nil
+}
+
+func (r *Redis) DeleteEmailConfirmToken(token string) error {
+	conn, err := r.getConnect()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := conn.Close(); err != nil {
+			r.log.Error(err)
+		}
+	}()
+
+	if _, err = conn.Do("DEL", emailConfirmationTokenKeyPrefix+token); err != nil {
+		return err
+	}
+
+	return nil
+}

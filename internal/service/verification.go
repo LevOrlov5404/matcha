@@ -27,7 +27,7 @@ func NewVerificationService(repo repository.Cache, generator RandomTokenGenerato
 	}
 }
 
-func (s *VerificationService) CreateEmailConfirmToken(clientID uint64) (string, error) {
+func (s *VerificationService) CreateEmailConfirmToken(userID uint64) (string, error) {
 	// generate random confirmation token
 	randomToken, err := s.generator.Generate(
 		randomTokenLength, randomTokenNumDigits, randomTokenNumSymbols, false, false,
@@ -38,10 +38,19 @@ func (s *VerificationService) CreateEmailConfirmToken(clientID uint64) (string, 
 
 	emailConfirmToken := emailConfirmationTokenPrefix + randomToken
 
-	err = s.repo.PutEmailConfirmToken(clientID, emailConfirmToken)
+	err = s.repo.PutEmailConfirmToken(userID, emailConfirmToken)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to put email confirmation token to cache ")
+		return "", errors.Wrap(err, "failed to put email confirmation token to cache")
 	}
 
 	return emailConfirmToken, nil
+}
+
+func (s *VerificationService) VerifyEmailConfirmToken(emailConfirmToken string) (userID uint64, err error) {
+	userID, err = s.repo.GetEmailConfirmTokenData(emailConfirmToken)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to get email confirmation token data from cache")
+	}
+
+	return userID, nil
 }

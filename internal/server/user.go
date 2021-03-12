@@ -19,13 +19,13 @@ func (s *Server) CreateUser(c *gin.Context) {
 		return
 	}
 
-	//id, err := s.services.User.CreateUser(c, user)
-	//if err != nil {
-	//	s.newErrorResponse(c, http.StatusInternalServerError, err)
-	//	return
-	//}
+	id, err := s.services.User.CreateUser(c, user)
+	if err != nil {
+		s.newErrorResponse(c, http.StatusInternalServerError, err)
+		return
+	}
 
-	var id uint64 = 0
+	// var id uint64 = 0
 
 	emailConfirmToken, err := s.services.Verification.CreateEmailConfirmToken(id)
 	if err != nil {
@@ -70,7 +70,7 @@ func (s *Server) GetUserByID(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		s.newErrorResponse(
-			c, http.StatusBadRequest, iErrs.NewBusiness(errors.New("invalid id param"), ""),
+			c, http.StatusBadRequest, iErrs.NewBusiness(errors.New("invalid id parameter"), ""),
 		)
 		return
 	}
@@ -129,7 +129,7 @@ func (s *Server) DeleteUser(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		s.newErrorResponse(
-			c, http.StatusBadRequest, iErrs.NewBusiness(errors.New("invalid id param"), ""),
+			c, http.StatusBadRequest, iErrs.NewBusiness(errors.New("invalid id parameter"), ""),
 		)
 		return
 	}

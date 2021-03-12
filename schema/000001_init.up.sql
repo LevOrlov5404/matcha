@@ -1,7 +1,7 @@
 CREATE TABLE users
 (
     id                 bigserial                primary key,
-    email              varchar(255)             not null,
+    email              varchar(255)             not null UNIQUE,
     username           varchar(255)             not null UNIQUE,
     first_name         varchar(255)             not null,
     last_name          varchar(255)             not null,

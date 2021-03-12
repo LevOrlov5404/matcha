@@ -127,6 +127,20 @@ func (r *UserPostgres) DeleteUser(ctx context.Context, id uint64) error {
 	return nil
 }
 
+func (r *UserPostgres) ConfirmEmail(ctx context.Context, id uint64) error {
+	query := fmt.Sprintf(`UPDATE %s SET is_email_confirmed = true WHERE id = $1`, usersTable)
+
+	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
+	defer cancel()
+
+	_, err := r.db.ExecContext(dbCtx, query, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func getDBError(err error) error {
 	if err, ok := err.(*pq.Error); ok {
 		if err.Code.Class() < "50" { // business error
