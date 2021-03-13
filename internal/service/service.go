@@ -6,6 +6,7 @@ import (
 	"github.com/LevOrlov5404/matcha/internal/config"
 	"github.com/LevOrlov5404/matcha/internal/models"
 	"github.com/LevOrlov5404/matcha/internal/repository"
+	"github.com/sirupsen/logrus"
 )
 
 type (
@@ -15,6 +16,7 @@ type (
 	User interface {
 		CreateUser(ctx context.Context, user models.UserToCreate) (uint64, error)
 		GetUserByID(ctx context.Context, id uint64) (*models.User, error)
+		GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 		UpdateUser(ctx context.Context, user models.User) error
 		GetAllUsers(ctx context.Context) ([]models.User, error)
 		DeleteUser(ctx context.Context, id uint64) error
@@ -25,9 +27,12 @@ type (
 	Verification interface {
 		CreateEmailConfirmToken(userID uint64) (string, error)
 		VerifyEmailConfirmToken(emailConfirmToken string) (userID uint64, err error)
+		CreateResetPasswordConfirmToken(userID uint64) (string, error)
+		VerifyResetPasswordConfirmToken(confirmToken string) (userID uint64, err error)
 	}
 	Mailer interface {
 		SendEmailConfirm(toEmail, token string) error
+		SendResetPasswordConfirm(toEmail, token string) error
 	}
 	Service struct {
 		User
@@ -37,13 +42,16 @@ type (
 )
 
 func NewService(
-	cfg *config.Config, repo *repository.Repository, generator RandomTokenGenerator,
+	cfg *config.Config, log *logrus.Logger,
+	repo *repository.Repository, generator RandomTokenGenerator,
 ) *Service {
+	verificationSvcEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "verificationService"})
+
 	return &Service{
 		User: NewUserService(
 			repo.User, cfg.JWT.AccessTokenLifetime.Duration(), cfg.JWT.SigningKey,
 		),
-		Verification: NewVerificationService(repo.Cache, generator),
+		Verification: NewVerificationService(verificationSvcEntry, repo.Cache, generator),
 		Mailer:       NewMailerService(cfg.Mailer),
 	}
 }

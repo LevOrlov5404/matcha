@@ -31,16 +31,37 @@ func NewMailerService(cfg config.Mailer) *MailerService {
 	}
 }
 
-func (s *MailerService) SendEmailConfirm(toEmail, emailConfirmToken string) error {
+func (s *MailerService) SendEmailConfirm(toEmail, token string) error {
 	m := goMail.NewMessage()
 
 	m.SetHeader("From", s.cfg.Username)
 	m.SetHeader("To", toEmail)
-	m.SetHeader("To", "lev.orlov.5404@gmail.com")
 	m.SetHeader("Subject", "Matcha registration")
 	m.SetBody("text/plain",
 		"We greet you.\nTo complete the registration go by this link.\n"+
-			"localhost:8080/confirm-email?token="+emailConfirmToken+
+			"localhost:8080/confirm-email?token="+token+
+			"\nThank you for choosing us :)")
+
+	if err := s.dialer.DialAndSend(m); err != nil {
+		return errors.Wrap(err, "failed to send email confirm")
+	}
+
+	//if err := s.dialer.DialAndSend(m); err != nil {
+	//	return errors.Wrap(err, "failed to send email confirm")
+	//}
+
+	return nil
+}
+
+func (s *MailerService) SendResetPasswordConfirm(toEmail, token string) error {
+	m := goMail.NewMessage()
+
+	m.SetHeader("From", s.cfg.Username)
+	m.SetHeader("To", toEmail)
+	m.SetHeader("Subject", "Matcha reset password")
+	m.SetBody("text/plain",
+		"Hello.\nTo reset password go by this link.\n"+
+			"localhost:8080/reset-password?token="+token+
 			"\nThank you for choosing us :)")
 
 	if err := s.dialer.DialAndSend(m); err != nil {

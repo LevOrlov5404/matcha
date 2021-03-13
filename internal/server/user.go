@@ -44,26 +44,6 @@ func (s *Server) CreateUser(c *gin.Context) {
 	})
 }
 
-func (s *Server) SignIn(c *gin.Context) {
-	setHandlerNameToLogEntry(c, "SignIn")
-
-	var user models.UserToSignIn
-	if err := c.BindJSON(&user); err != nil {
-		s.newErrorResponse(c, http.StatusBadRequest, iErrs.NewBusiness(err, ""))
-		return
-	}
-
-	token, err := s.services.User.GenerateToken(c, user.Username, user.Password)
-	if err != nil {
-		s.newErrorResponse(c, http.StatusInternalServerError, err)
-		return
-	}
-
-	c.JSON(http.StatusOK, map[string]interface{}{
-		"token": token,
-	})
-}
-
 func (s *Server) GetUserByID(c *gin.Context) {
 	setHandlerNameToLogEntry(c, "GetUserByID")
 

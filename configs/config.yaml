@@ -17,6 +17,7 @@ jwt:
 
 verification:
   emailConfirmTokenLifetime: 24h
+  resetPasswordConfirmTokenLifetime: 1h
 
 mailer:
   timeout: 3s

@@ -43,7 +43,8 @@ type (
 		SigningKey          string         `yaml:"signingKey" env:"JWT_SIGNING_KEY,default=test"`
 	}
 	Verification struct {
-		EmailConfirmTokenLifetime DurationConfig `yaml:"emailConfirmTokenLifetime"`
+		EmailConfirmTokenLifetime         DurationConfig `yaml:"emailConfirmTokenLifetime"`
+		ResetPasswordConfirmTokenLifetime DurationConfig `yaml:"resetPasswordConfirmTokenLifetime"`
 	}
 	Mailer struct {
 		ServerAddress AddressConfig  `yaml:"serverAddress" env:"EMAIL_SERVER_ADDRESS,default=smtp.gmail.com:587"`

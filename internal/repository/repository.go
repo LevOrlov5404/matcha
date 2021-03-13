@@ -16,6 +16,7 @@ type (
 		CreateUser(ctx context.Context, user models.UserToCreate) (uint64, error)
 		GetUserByUsername(ctx context.Context, username string) (*models.User, error)
 		GetUserByID(ctx context.Context, id uint64) (*models.User, error)
+		GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 		UpdateUser(ctx context.Context, user models.User) error
 		GetAllUsers(ctx context.Context) ([]models.User, error)
 		DeleteUser(ctx context.Context, id uint64) error
@@ -25,6 +26,9 @@ type (
 		PutEmailConfirmToken(userID uint64, token string) error
 		GetEmailConfirmTokenData(token string) (userID uint64, err error)
 		DeleteEmailConfirmToken(token string) error
+		PutResetPasswordConfirmToken(userID uint64, token string) error
+		GetResetPasswordConfirmTokenData(token string) (userID uint64, err error)
+		DeleteResetPasswordConfirmToken(token string) error
 	}
 	Repository struct {
 		User
@@ -37,7 +41,8 @@ func NewRepository(
 ) *Repository {
 	cacheEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "cacheRedis"})
 	cacheOptions := cacheRedis.Options{
-		EmailConfirmTokenLifetime: int(cfg.Verification.EmailConfirmTokenLifetime.Duration().Seconds()),
+		EmailConfirmTokenLifetime:         int(cfg.Verification.EmailConfirmTokenLifetime.Duration().Seconds()),
+		ResetPasswordConfirmTokenLifetime: int(cfg.Verification.ResetPasswordConfirmTokenLifetime.Duration().Seconds()),
 	}
 
 	return &Repository{

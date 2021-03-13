@@ -42,6 +42,15 @@ func (s *UserService) CreateUser(ctx context.Context, user models.UserToCreate) 
 		return 0, iErrs.NewBusiness(errors.New("username is already taken"), "")
 	}
 
+	existingUser, err = s.repo.GetUserByEmail(ctx, user.Email)
+	if err != nil {
+		return 0, err
+	}
+
+	if existingUser != nil {
+		return 0, iErrs.NewBusiness(errors.New("user with this email already exists"), "")
+	}
+
 	hashedPassword, err := HashPassword(user.Password)
 	if err != nil {
 		return 0, iErrs.New(err)
@@ -54,6 +63,10 @@ func (s *UserService) CreateUser(ctx context.Context, user models.UserToCreate) 
 
 func (s *UserService) GetUserByID(ctx context.Context, id uint64) (*models.User, error) {
 	return s.repo.GetUserByID(ctx, id)
+}
+
+func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	return s.repo.GetUserByEmail(ctx, email)
 }
 
 func (s *UserService) UpdateUser(ctx context.Context, user models.User) error {

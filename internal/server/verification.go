@@ -32,3 +32,22 @@ func (s *Server) ConfirmEmail(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+func (s *Server) ConfirmResetPassword(c *gin.Context) {
+	setHandlerNameToLogEntry(c, "ConfirmResetPassword")
+
+	token, ok := c.GetQuery("token")
+	if !ok || token == "" {
+		s.newErrorResponse(
+			c, http.StatusBadRequest, iErrs.NewBusiness(errors.New("empty token parameter"), ""),
+		)
+		return
+	}
+
+	if _, err := s.services.Verification.VerifyResetPasswordConfirmToken(token); err != nil {
+		s.newErrorResponse(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.Status(http.StatusOK)
+}

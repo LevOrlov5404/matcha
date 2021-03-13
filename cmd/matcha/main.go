@@ -56,7 +56,7 @@ func main() {
 	}
 
 	repo := repository.NewRepository(cfg, lg, db)
-	services := service.NewService(cfg, repo, randomSymbolsGenerator)
+	services := service.NewService(cfg, lg, repo, randomSymbolsGenerator)
 
 	srv := server.NewServer(cfg, lg, services)
 	go func() {

@@ -63,6 +63,27 @@ SELECT id, email, username, first_name, last_name, password FROM %s WHERE userna
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
+
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (r *UserPostgres) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	query := fmt.Sprintf(`
+SELECT id, email, username, first_name, last_name, password FROM %s WHERE email=$1`, usersTable)
+	var user models.User
+
+	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
+	defer cancel()
+
+	if err := r.db.GetContext(dbCtx, &user, query, email); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+
+		return nil, err
 	}
 
 	return &user, nil
@@ -80,6 +101,8 @@ SELECT id, email, username, first_name, last_name, password, is_email_confirmed 
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
+
+		return nil, err
 	}
 
 	return &user, nil
@@ -87,12 +110,12 @@ SELECT id, email, username, first_name, last_name, password, is_email_confirmed 
 
 func (r *UserPostgres) UpdateUser(ctx context.Context, user models.User) error {
 	query := fmt.Sprintf(`
-UPDATE %s SET email = $1, username = $2, first_name = $3, last_name = $4, password = $5 WHERE id = $6`, usersTable)
+UPDATE %s SET username = $1, first_name = $2, last_name = $3, password = $4 WHERE id = $5`, usersTable)
 
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
 
-	_, err := r.db.ExecContext(dbCtx, query, user.Email, user.Username, user.FirstName, user.LastName, user.Password, user.ID)
+	_, err := r.db.ExecContext(dbCtx, query, user.Username, user.FirstName, user.LastName, user.Password, user.ID)
 	if err != nil {
 		return err
 	}
