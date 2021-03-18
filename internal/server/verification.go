@@ -21,7 +21,7 @@ func (s *Server) ConfirmEmail(c *gin.Context) {
 
 	userID, err := s.services.Verification.VerifyEmailConfirmToken(token)
 	if err != nil {
-		s.newErrorResponse(c, http.StatusInternalServerError, err)
+		s.newErrorResponse(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -45,7 +45,7 @@ func (s *Server) ConfirmResetPassword(c *gin.Context) {
 	}
 
 	if _, err := s.services.Verification.VerifyResetPasswordConfirmToken(token); err != nil {
-		s.newErrorResponse(c, http.StatusInternalServerError, err)
+		s.newErrorResponse(c, http.StatusBadRequest, err)
 		return
 	}
 

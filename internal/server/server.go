@@ -57,7 +57,6 @@ func (s *Server) InitRoutes() *gin.Engine {
 	}
 
 	router.POST("/confirm-email", s.ConfirmEmail)
-
 	router.POST("/confirm-reset-password", s.ConfirmResetPassword)
 
 	api := router.Group("/api/v1", s.UserIdentityMiddleware)

@@ -61,7 +61,7 @@ func (s *MailerService) SendResetPasswordConfirm(toEmail, token string) error {
 	m.SetHeader("Subject", "Matcha reset password")
 	m.SetBody("text/plain",
 		"Hello.\nTo reset password go by this link.\n"+
-			"localhost:8080/reset-password?token="+token+
+			"localhost:8080/confirm-reset-password?token="+token+
 			"\nThank you for choosing us :)")
 
 	if err := s.dialer.DialAndSend(m); err != nil {

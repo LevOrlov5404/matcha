@@ -6,6 +6,7 @@ import (
 	iErrs "github.com/LevOrlov5404/matcha/internal/errors"
 	"github.com/LevOrlov5404/matcha/internal/models"
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
 )
 
 func (s *Server) SignIn(c *gin.Context) {
@@ -31,15 +32,24 @@ func (s *Server) SignIn(c *gin.Context) {
 func (s *Server) ResetPassword(c *gin.Context) {
 	setHandlerNameToLogEntry(c, "ResetPassword")
 
-	var userEmail models.UserEmail
-	if err := c.BindJSON(&userEmail); err != nil {
-		s.newErrorResponse(c, http.StatusBadRequest, iErrs.NewBusiness(err, ""))
+	email, ok := c.GetQuery("email")
+	if !ok || email == "" {
+		s.newErrorResponse(
+			c, http.StatusBadRequest, iErrs.NewBusiness(errors.New("empty email parameter"), ""),
+		)
 		return
 	}
 
-	user, err := s.services.User.GetUserByEmail(c, userEmail.Email)
+	user, err := s.services.User.GetUserByEmail(c, email)
 	if err != nil {
 		s.newErrorResponse(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	if user == nil {
+		s.newErrorResponse(
+			c, http.StatusBadRequest, iErrs.NewBusiness(errors.New("there is no user with this email"), ""),
+		)
 		return
 	}
 
