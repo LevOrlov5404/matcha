@@ -49,8 +49,8 @@ func (s *Server) InitRoutes() *gin.Engine {
 
 	auth := router.Group("/auth")
 	{
-		auth.POST("/sigh-up", s.CreateUser)
-		auth.POST("/sigh-in", s.SignIn)
+		auth.POST("/sign-up", s.CreateUser)
+		auth.POST("/sign-in", s.SignIn)
 		router.POST("/reset-password", s.ResetPassword)
 		// auth.POST("/refresh-session", s.RefreshSession)
 		// auth.POST("/logout", s.Logout)
