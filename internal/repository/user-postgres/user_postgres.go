@@ -123,6 +123,20 @@ UPDATE %s SET username = $1, first_name = $2, last_name = $3, password = $4 WHER
 	return nil
 }
 
+func (r *UserPostgres) UpdateUserPassword(ctx context.Context, userID uint64, password string) error {
+	query := fmt.Sprintf(`UPDATE %s SET password = $1 WHERE id = $2`, usersTable)
+
+	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
+	defer cancel()
+
+	_, err := r.db.ExecContext(dbCtx, query, password, userID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *UserPostgres) GetAllUsers(ctx context.Context) ([]models.User, error) {
 	query := fmt.Sprintf(`
 SELECT id, email, username, first_name, last_name, is_email_confirmed FROM %s`, usersTable)

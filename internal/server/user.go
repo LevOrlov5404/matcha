@@ -25,8 +25,6 @@ func (s *Server) CreateUser(c *gin.Context) {
 		return
 	}
 
-	// var id uint64 = 0
-
 	emailConfirmToken, err := s.services.Verification.CreateEmailConfirmToken(id)
 	if err != nil {
 		s.newErrorResponse(c, http.StatusInternalServerError, err)
@@ -79,6 +77,40 @@ func (s *Server) UpdateUser(c *gin.Context) {
 	}
 
 	if err := s.services.User.UpdateUser(c, user); err != nil {
+		s.newErrorResponse(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (s *Server) SetUserPassword(c *gin.Context) {
+	setHandlerNameToLogEntry(c, "SetPassword")
+
+	var user models.UserPassword
+	if err := c.BindJSON(&user); err != nil {
+		s.newErrorResponse(c, http.StatusBadRequest, iErrs.NewBusiness(err, ""))
+		return
+	}
+
+	if err := s.services.User.SetUserPassword(c, user.ID, user.Password); err != nil {
+		s.newErrorResponse(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (s *Server) ChangeUserPassword(c *gin.Context) {
+	setHandlerNameToLogEntry(c, "ChangePassword")
+
+	var user models.UserPasswordToChange
+	if err := c.BindJSON(&user); err != nil {
+		s.newErrorResponse(c, http.StatusBadRequest, iErrs.NewBusiness(err, ""))
+		return
+	}
+
+	if err := s.services.User.ChangeUserPassword(c, user.ID, user.OldPassword, user.NewPassword); err != nil {
 		s.newErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}

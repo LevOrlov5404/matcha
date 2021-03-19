@@ -63,10 +63,12 @@ func (s *Server) InitRoutes() *gin.Engine {
 	{
 		users := api.Group("/users")
 		{
-			users.POST("/", s.CreateUser)
-			users.GET("/", s.GetAllUsers)
+			users.POST("", s.CreateUser)
+			users.GET("", s.GetAllUsers)
 			users.GET("/by-id/:id", s.GetUserByID)
-			users.PUT("/", s.UpdateUser)
+			users.PUT("", s.UpdateUser)
+			users.PUT("/set-password", s.SetUserPassword)
+			users.PUT("/change-password", s.ChangeUserPassword)
 			users.DELETE("/:id", s.DeleteUser)
 		}
 	}

@@ -80,6 +80,37 @@ func (s *UserService) UpdateUser(ctx context.Context, user models.User) error {
 	return s.repo.UpdateUser(ctx, user)
 }
 
+func (s *UserService) SetUserPassword(ctx context.Context, userID uint64, password string) error {
+	hashedPassword, err := HashPassword(password)
+	if err != nil {
+		return iErrs.New(err)
+	}
+
+	return s.repo.UpdateUserPassword(ctx, userID, hashedPassword)
+}
+
+func (s *UserService) ChangeUserPassword(ctx context.Context, userID uint64, oldPassword, newPassword string) error {
+	user, err := s.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if user == nil {
+		return iErrs.NewBusiness(errors.New("user does not exist"), "")
+	}
+
+	if !CheckPasswordHash(user.Password, oldPassword) {
+		return iErrs.NewBusiness(errors.New("wrong password"), "")
+	}
+
+	hashedPassword, err := HashPassword(newPassword)
+	if err != nil {
+		return iErrs.New(err)
+	}
+
+	return s.repo.UpdateUserPassword(ctx, userID, hashedPassword)
+}
+
 func (s *UserService) GetAllUsers(ctx context.Context) ([]models.User, error) {
 	return s.repo.GetAllUsers(ctx)
 }

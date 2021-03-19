@@ -21,7 +21,13 @@ type (
 		Password         string `json:"-" db:"password"`
 		IsEmailConfirmed bool   `json:"isEmailConfirmed" db:"is_email_confirmed"`
 	}
-	UserEmail struct {
-		Email string `json:"email" binding:"required"`
+	UserPassword struct {
+		ID       uint64 `json:"id" binding:"required"`
+		Password string `json:"password" binding:"required"`
+	}
+	UserPasswordToChange struct {
+		ID          uint64 `json:"id" binding:"required"`
+		OldPassword string `json:"oldPassword" binding:"required"`
+		NewPassword string `json:"newPassword" binding:"required"`
 	}
 )

@@ -18,6 +18,7 @@ type (
 		GetUserByID(ctx context.Context, id uint64) (*models.User, error)
 		GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 		UpdateUser(ctx context.Context, user models.User) error
+		UpdateUserPassword(ctx context.Context, userID uint64, password string) error
 		GetAllUsers(ctx context.Context) ([]models.User, error)
 		DeleteUser(ctx context.Context, id uint64) error
 		ConfirmEmail(ctx context.Context, id uint64) error

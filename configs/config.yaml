@@ -13,7 +13,7 @@ redis:
   idleTimeout: 240s
 
 jwt:
-  accessTokenLifetime: 2h
+  accessTokenLifetime: 4h
 
 verification:
   emailConfirmTokenLifetime: 24h
