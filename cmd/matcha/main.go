@@ -9,8 +9,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/LevOrlov5404/matcha/internal/config"
 	"github.com/LevOrlov5404/matcha/internal/repository"
 	userPostgres "github.com/LevOrlov5404/matcha/internal/repository/user-postgres"
@@ -19,6 +17,7 @@ import (
 	"github.com/LevOrlov5404/matcha/pkg/logger"
 	_ "github.com/lib/pq"
 	"github.com/sethvargo/go-password/password"
+	"github.com/sirupsen/logrus"
 )
 
 const (

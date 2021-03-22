@@ -40,14 +40,14 @@ type (
 func NewRepository(
 	cfg *config.Config, log *logrus.Logger, db *sqlx.DB,
 ) *Repository {
-	cacheEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "cacheRedis"})
+	cacheLogEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "cacheRedis"})
 	cacheOptions := cacheRedis.Options{
 		EmailConfirmTokenLifetime:         int(cfg.Verification.EmailConfirmTokenLifetime.Duration().Seconds()),
-		ResetPasswordConfirmTokenLifetime: int(cfg.Verification.PasswordResetConfirmTokenLifetime.Duration().Seconds()),
+		PasswordResetConfirmTokenLifetime: int(cfg.Verification.PasswordResetConfirmTokenLifetime.Duration().Seconds()),
 	}
 
 	return &Repository{
 		User:  userPostgres.NewUserPostgres(db, cfg.PostgresDB.Timeout.Duration()),
-		Cache: cacheRedis.New(cfg.Redis, cacheEntry, cacheOptions),
+		Cache: cacheRedis.New(cfg.Redis, cacheLogEntry, cacheOptions),
 	}
 }

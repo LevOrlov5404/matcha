@@ -16,7 +16,7 @@ const (
 type (
 	Options struct {
 		EmailConfirmTokenLifetime         int
-		ResetPasswordConfirmTokenLifetime int
+		PasswordResetConfirmTokenLifetime int
 	}
 	Redis struct {
 		log     *logrus.Entry
@@ -130,7 +130,7 @@ func (r *Redis) PutPasswordResetConfirmToken(userID uint64, token string) error 
 	}()
 
 	if err = conn.Send("SETEX", passwordResetConfirmTokenKeyPrefix+token,
-		r.options.EmailConfirmTokenLifetime, userID,
+		r.options.PasswordResetConfirmTokenLifetime, userID,
 	); err != nil {
 		return err
 	}
