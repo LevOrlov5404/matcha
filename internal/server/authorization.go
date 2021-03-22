@@ -53,17 +53,14 @@ func (s *Server) ResetPassword(c *gin.Context) {
 		return
 	}
 
-	resetPasswordConfirmToken, err := s.services.Verification.CreateResetPasswordConfirmToken(user.ID)
+	passwordResetConfirmToken, err := s.services.Verification.CreatePasswordResetConfirmToken(user.ID)
 	if err != nil {
 		s.newErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	// send token by email
-	if err := s.services.Mailer.SendResetPasswordConfirm(user.Email, resetPasswordConfirmToken); err != nil {
-		s.newErrorResponse(c, http.StatusInternalServerError, err)
-		return
-	}
+	s.services.Mailer.SendResetPasswordConfirm(user.Email, passwordResetConfirmToken)
 
 	c.Status(http.StatusOK)
 }

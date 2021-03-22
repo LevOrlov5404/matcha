@@ -10,7 +10,7 @@ import (
 
 const (
 	emailConfirmTokenKeyPrefix         = "eConf:"
-	resetPasswordConfirmTokenKeyPrefix = "rpConf:"
+	passwordResetConfirmTokenKeyPrefix = "rpConf:"
 )
 
 type (
@@ -118,7 +118,7 @@ func (r *Redis) DeleteEmailConfirmToken(token string) error {
 	return nil
 }
 
-func (r *Redis) PutResetPasswordConfirmToken(userID uint64, token string) error {
+func (r *Redis) PutPasswordResetConfirmToken(userID uint64, token string) error {
 	conn, err := r.getConnect()
 	if err != nil {
 		return err
@@ -129,7 +129,7 @@ func (r *Redis) PutResetPasswordConfirmToken(userID uint64, token string) error 
 		}
 	}()
 
-	if err = conn.Send("SETEX", resetPasswordConfirmTokenKeyPrefix+token,
+	if err = conn.Send("SETEX", passwordResetConfirmTokenKeyPrefix+token,
 		r.options.EmailConfirmTokenLifetime, userID,
 	); err != nil {
 		return err
@@ -138,7 +138,7 @@ func (r *Redis) PutResetPasswordConfirmToken(userID uint64, token string) error 
 	return nil
 }
 
-func (r *Redis) GetResetPasswordConfirmTokenData(token string) (userID uint64, err error) {
+func (r *Redis) GetPasswordResetConfirmTokenData(token string) (userID uint64, err error) {
 	conn, err := r.getConnect()
 	if err != nil {
 		return 0, err
@@ -149,7 +149,7 @@ func (r *Redis) GetResetPasswordConfirmTokenData(token string) (userID uint64, e
 		}
 	}()
 
-	userID, err = redis.Uint64(conn.Do("GET", resetPasswordConfirmTokenKeyPrefix+token))
+	userID, err = redis.Uint64(conn.Do("GET", passwordResetConfirmTokenKeyPrefix+token))
 	if err != nil {
 		return 0, err
 	}
@@ -157,7 +157,7 @@ func (r *Redis) GetResetPasswordConfirmTokenData(token string) (userID uint64, e
 	return userID, nil
 }
 
-func (r *Redis) DeleteResetPasswordConfirmToken(token string) error {
+func (r *Redis) DeletePasswordResetConfirmToken(token string) error {
 	conn, err := r.getConnect()
 	if err != nil {
 		return err
@@ -168,7 +168,7 @@ func (r *Redis) DeleteResetPasswordConfirmToken(token string) error {
 		}
 	}()
 
-	if _, err = conn.Do("DEL", resetPasswordConfirmTokenKeyPrefix+token); err != nil {
+	if _, err = conn.Do("DEL", passwordResetConfirmTokenKeyPrefix+token); err != nil {
 		return err
 	}
 

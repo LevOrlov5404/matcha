@@ -8,11 +8,11 @@ import (
 
 const (
 	randomTokenLength     = 24
-	randomTokenNumDigits  = 8
-	randomTokenNumSymbols = 0
+	randomTokenDigitsNum  = 8
+	randomTokenSymbolsNum = 0
 
 	emailConfirmationTokenPrefix       = "ec"
-	resetPasswordConfirmTokenKeyPrefix = "rpc"
+	passwordResetConfirmTokenKeyPrefix = "rpc"
 )
 
 type (
@@ -62,15 +62,15 @@ func (s *VerificationService) VerifyEmailConfirmToken(confirmToken string) (user
 	return userID, nil
 }
 
-func (s *VerificationService) CreateResetPasswordConfirmToken(userID uint64) (string, error) {
+func (s *VerificationService) CreatePasswordResetConfirmToken(userID uint64) (string, error) {
 	token, err := s.generateRandomToken()
 	if err != nil {
 		return "", err
 	}
 
-	confirmToken := resetPasswordConfirmTokenKeyPrefix + token
+	confirmToken := passwordResetConfirmTokenKeyPrefix + token
 
-	err = s.repo.PutResetPasswordConfirmToken(userID, confirmToken)
+	err = s.repo.PutPasswordResetConfirmToken(userID, confirmToken)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to put reset password confirmation token to cache")
 	}
@@ -78,13 +78,13 @@ func (s *VerificationService) CreateResetPasswordConfirmToken(userID uint64) (st
 	return confirmToken, nil
 }
 
-func (s *VerificationService) VerifyResetPasswordConfirmToken(confirmToken string) (userID uint64, err error) {
-	userID, err = s.repo.GetResetPasswordConfirmTokenData(confirmToken)
+func (s *VerificationService) VerifyPasswordResetConfirmToken(confirmToken string) (userID uint64, err error) {
+	userID, err = s.repo.GetPasswordResetConfirmTokenData(confirmToken)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to get reset password confirmation token data from cache")
 	}
 
-	if err := s.repo.DeleteResetPasswordConfirmToken(confirmToken); err != nil {
+	if err := s.repo.DeletePasswordResetConfirmToken(confirmToken); err != nil {
 		s.log.Error(errors.Wrap(err, "failed to delete reset password confirmation token from cache"))
 	}
 
@@ -93,7 +93,7 @@ func (s *VerificationService) VerifyResetPasswordConfirmToken(confirmToken strin
 
 func (s *VerificationService) generateRandomToken() (string, error) {
 	randomToken, err := s.generator.Generate(
-		randomTokenLength, randomTokenNumDigits, randomTokenNumSymbols, false, false,
+		randomTokenLength, randomTokenDigitsNum, randomTokenSymbolsNum, false, false,
 	)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to generate random token")

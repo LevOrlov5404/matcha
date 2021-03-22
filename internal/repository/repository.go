@@ -27,9 +27,9 @@ type (
 		PutEmailConfirmToken(userID uint64, token string) error
 		GetEmailConfirmTokenData(token string) (userID uint64, err error)
 		DeleteEmailConfirmToken(token string) error
-		PutResetPasswordConfirmToken(userID uint64, token string) error
-		GetResetPasswordConfirmTokenData(token string) (userID uint64, err error)
-		DeleteResetPasswordConfirmToken(token string) error
+		PutPasswordResetConfirmToken(userID uint64, token string) error
+		GetPasswordResetConfirmTokenData(token string) (userID uint64, err error)
+		DeletePasswordResetConfirmToken(token string) error
 	}
 	Repository struct {
 		User
@@ -43,7 +43,7 @@ func NewRepository(
 	cacheEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "cacheRedis"})
 	cacheOptions := cacheRedis.Options{
 		EmailConfirmTokenLifetime:         int(cfg.Verification.EmailConfirmTokenLifetime.Duration().Seconds()),
-		ResetPasswordConfirmTokenLifetime: int(cfg.Verification.ResetPasswordConfirmTokenLifetime.Duration().Seconds()),
+		ResetPasswordConfirmTokenLifetime: int(cfg.Verification.PasswordResetConfirmTokenLifetime.Duration().Seconds()),
 	}
 
 	return &Repository{

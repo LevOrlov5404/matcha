@@ -11,7 +11,7 @@ import (
 
 type (
 	RandomTokenGenerator interface {
-		Generate(length, numDigits, numSymbols int, noUpper, allowRepeat bool) (string, error)
+		Generate(length, digitsNum, symbolsNum int, noUpper, allowRepeat bool) (string, error)
 	}
 	User interface {
 		CreateUser(ctx context.Context, user models.UserToCreate) (uint64, error)
@@ -29,12 +29,12 @@ type (
 	Verification interface {
 		CreateEmailConfirmToken(userID uint64) (string, error)
 		VerifyEmailConfirmToken(emailConfirmToken string) (userID uint64, err error)
-		CreateResetPasswordConfirmToken(userID uint64) (string, error)
-		VerifyResetPasswordConfirmToken(confirmToken string) (userID uint64, err error)
+		CreatePasswordResetConfirmToken(userID uint64) (string, error)
+		VerifyPasswordResetConfirmToken(confirmToken string) (userID uint64, err error)
 	}
 	Mailer interface {
-		SendEmailConfirm(toEmail, token string) error
-		SendResetPasswordConfirm(toEmail, token string) error
+		SendEmailConfirm(toEmail, token string)
+		SendResetPasswordConfirm(toEmail, token string)
 	}
 	Service struct {
 		User
@@ -46,14 +46,15 @@ type (
 func NewService(
 	cfg *config.Config, log *logrus.Logger,
 	repo *repository.Repository, generator RandomTokenGenerator,
+	mailer Mailer,
 ) *Service {
-	verificationSvcEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "verificationService"})
+	verificationLogEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "verificationService"})
 
 	return &Service{
 		User: NewUserService(
 			repo.User, cfg.JWT.AccessTokenLifetime.Duration(), cfg.JWT.SigningKey,
 		),
-		Verification: NewVerificationService(verificationSvcEntry, repo.Cache, generator),
-		Mailer:       NewMailerService(cfg.Mailer),
+		Verification: NewVerificationService(verificationLogEntry, repo.Cache, generator),
+		Mailer:       mailer,
 	}
 }

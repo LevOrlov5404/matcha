@@ -32,10 +32,7 @@ func (s *Server) CreateUser(c *gin.Context) {
 	}
 
 	// send token by email
-	if err := s.services.Mailer.SendEmailConfirm(user.Email, emailConfirmToken); err != nil {
-		s.newErrorResponse(c, http.StatusInternalServerError, err)
-		return
-	}
+	s.services.Mailer.SendEmailConfirm(user.Email, emailConfirmToken)
 
 	c.JSON(http.StatusOK, map[string]interface{}{
 		"id": id,

@@ -9,6 +9,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/LevOrlov5404/matcha/internal/config"
 	"github.com/LevOrlov5404/matcha/internal/repository"
 	userPostgres "github.com/LevOrlov5404/matcha/internal/repository/user-postgres"
@@ -56,7 +58,12 @@ func main() {
 	}
 
 	repo := repository.NewRepository(cfg, lg, db)
-	services := service.NewService(cfg, lg, repo, randomSymbolsGenerator)
+
+	mailerLogEntry := logrus.NewEntry(lg).WithFields(logrus.Fields{"source": "mailerService"})
+	mailer := service.NewMailerService(cfg.Mailer, mailerLogEntry)
+	defer mailer.Close()
+
+	services := service.NewService(cfg, lg, repo, randomSymbolsGenerator, mailer)
 
 	srv := server.NewServer(cfg, lg, services)
 	go func() {

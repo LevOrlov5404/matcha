@@ -3,19 +3,22 @@ package service
 import (
 	"crypto/tls"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/LevOrlov5404/matcha/internal/config"
-	"github.com/pkg/errors"
 	goMail "gopkg.in/mail.v2"
 )
 
 type (
 	MailerService struct {
-		cfg    config.Mailer
-		dialer *goMail.Dialer
+		cfg           config.Mailer
+		log           *logrus.Entry
+		dialer        *goMail.Dialer
+		msgToSendChan chan *goMail.Message
 	}
 )
 
-func NewMailerService(cfg config.Mailer) *MailerService {
+func NewMailerService(cfg config.Mailer, log *logrus.Entry) *MailerService {
 	d := goMail.NewDialer(
 		cfg.ServerAddress.Host, cfg.ServerAddress.Port, cfg.Username, cfg.Password,
 	)
@@ -25,13 +28,35 @@ func NewMailerService(cfg config.Mailer) *MailerService {
 		InsecureSkipVerify: false,
 	}
 
-	return &MailerService{
+	mailerSvc := &MailerService{
 		cfg:    cfg,
+		log:    log,
 		dialer: d,
+	}
+
+	mailerSvc.msgToSendChan = make(chan *goMail.Message, cfg.MsgToSendChanSize)
+	mailerSvc.InitWorkers()
+
+	return mailerSvc
+}
+
+func (s *MailerService) InitWorkers() {
+	for i := 0; i < s.cfg.WorkersNum; i++ {
+		go func() {
+			for m := range s.msgToSendChan {
+				if err := s.dialer.DialAndSend(m); err != nil {
+					s.log.Errorf("failed to send message by email: %v", err)
+				}
+			}
+		}()
 	}
 }
 
-func (s *MailerService) SendEmailConfirm(toEmail, token string) error {
+func (s *MailerService) Close() {
+	close(s.msgToSendChan)
+}
+
+func (s *MailerService) SendEmailConfirm(toEmail, token string) {
 	m := goMail.NewMessage()
 
 	m.SetHeader("From", s.cfg.Username)
@@ -42,18 +67,10 @@ func (s *MailerService) SendEmailConfirm(toEmail, token string) error {
 			"localhost:8080/confirm-email?token="+token+
 			"\nThank you for choosing us :)")
 
-	if err := s.dialer.DialAndSend(m); err != nil {
-		return errors.Wrap(err, "failed to send email confirm")
-	}
-
-	//if err := s.dialer.DialAndSend(m); err != nil {
-	//	return errors.Wrap(err, "failed to send email confirm")
-	//}
-
-	return nil
+	s.msgToSendChan <- m
 }
 
-func (s *MailerService) SendResetPasswordConfirm(toEmail, token string) error {
+func (s *MailerService) SendResetPasswordConfirm(toEmail, token string) {
 	m := goMail.NewMessage()
 
 	m.SetHeader("From", s.cfg.Username)
@@ -64,13 +81,5 @@ func (s *MailerService) SendResetPasswordConfirm(toEmail, token string) error {
 			"localhost:8080/confirm-reset-password?token="+token+
 			"\nThank you for choosing us :)")
 
-	if err := s.dialer.DialAndSend(m); err != nil {
-		return errors.Wrap(err, "failed to send email confirm")
-	}
-
-	//if err := s.dialer.DialAndSend(m); err != nil {
-	//	return errors.Wrap(err, "failed to send email confirm")
-	//}
-
-	return nil
+	s.msgToSendChan <- m
 }

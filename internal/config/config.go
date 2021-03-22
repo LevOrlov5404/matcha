@@ -44,13 +44,15 @@ type (
 	}
 	Verification struct {
 		EmailConfirmTokenLifetime         DurationConfig `yaml:"emailConfirmTokenLifetime"`
-		ResetPasswordConfirmTokenLifetime DurationConfig `yaml:"resetPasswordConfirmTokenLifetime"`
+		PasswordResetConfirmTokenLifetime DurationConfig `yaml:"passwordResetConfirmTokenLifetime"`
 	}
 	Mailer struct {
-		ServerAddress AddressConfig  `yaml:"serverAddress" env:"EMAIL_SERVER_ADDRESS,default=smtp.gmail.com:587"`
-		Username      string         `yaml:"username" env:"EMAIL_USERNAME,default=test"`
-		Password      string         `yaml:"password" env:"EMAIL_PASSWORD,default=test"`
-		Timeout       DurationConfig `yaml:"timeout"`
+		ServerAddress     AddressConfig  `yaml:"serverAddress" env:"EMAIL_SERVER_ADDRESS,default=smtp.gmail.com:587"`
+		Username          string         `yaml:"username" env:"EMAIL_USERNAME,default=test"`
+		Password          string         `yaml:"password" env:"EMAIL_PASSWORD,default=test"`
+		Timeout           DurationConfig `yaml:"timeout"`
+		MsgToSendChanSize int            `yaml:"msgToSendChanSize"`
+		WorkersNum        int            `yaml:"workersNum"`
 	}
 )
 
