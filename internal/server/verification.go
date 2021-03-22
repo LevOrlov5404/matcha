@@ -44,10 +44,13 @@ func (s *Server) ConfirmPasswordReset(c *gin.Context) {
 		return
 	}
 
-	if _, err := s.services.Verification.VerifyPasswordResetConfirmToken(token); err != nil {
+	userID, err := s.services.Verification.VerifyPasswordResetConfirmToken(token)
+	if err != nil {
 		s.newErrorResponse(c, http.StatusBadRequest, err)
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, map[string]interface{}{
+		"id": userID,
+	})
 }
