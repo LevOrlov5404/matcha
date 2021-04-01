@@ -3,9 +3,10 @@ package service
 import (
 	"context"
 
-	"github.com/LevOrlov5404/matcha/internal/config"
-	"github.com/LevOrlov5404/matcha/internal/models"
-	"github.com/LevOrlov5404/matcha/internal/repository"
+	"github.com/dgrijalva/jwt-go"
+	"github.com/l-orlov/matcha/internal/config"
+	"github.com/l-orlov/matcha/internal/models"
+	"github.com/l-orlov/matcha/internal/repository"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,8 +24,15 @@ type (
 		GetAllUsers(ctx context.Context) ([]models.User, error)
 		DeleteUser(ctx context.Context, id uint64) error
 		ConfirmEmail(ctx context.Context, id uint64) error
-		GenerateToken(ctx context.Context, username, password string) (string, error)
-		ParseToken(token string) (uint64, error)
+	}
+	UserAuthentication interface {
+		AuthenticateUserByUsername(ctx context.Context, username, password, fingerprint string) (userID uint64, err error)
+	}
+	UserAuthorization interface {
+		CreateSession(userID, fingerprint string) (accessToken, refreshToken string, err error)
+		ValidateAccessToken(accessToken string) (*jwt.StandardClaims, error)
+		RefreshSession(currentRefreshToken, fingerprint string) (accessToken, refreshToken string, err error)
+		RevokeSession(accessToken string) error
 	}
 	Verification interface {
 		CreateEmailConfirmToken(userID uint64) (string, error)
@@ -38,6 +46,8 @@ type (
 	}
 	Service struct {
 		User
+		UserAuthentication
+		UserAuthorization
 		Verification
 		Mailer
 	}
@@ -48,13 +58,16 @@ func NewService(
 	repo *repository.Repository, generator RandomTokenGenerator,
 	mailer Mailer,
 ) *Service {
+	authenticationLogEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "authenticationService"})
 	verificationLogEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "verificationService"})
 
 	return &Service{
 		User: NewUserService(
 			repo.User, cfg.JWT.AccessTokenLifetime.Duration(), cfg.JWT.SigningKey,
 		),
-		Verification: NewVerificationService(verificationLogEntry, repo.Cache, generator),
-		Mailer:       mailer,
+		UserAuthentication: NewAuthenticationService(cfg, authenticationLogEntry, repo),
+		UserAuthorization:  NewAuthorizationService(cfg, repo),
+		Verification:       NewVerificationService(verificationLogEntry, repo.VerificationCache, generator),
+		Mailer:             mailer,
 	}
 }

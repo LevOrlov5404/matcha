@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	iErrs "github.com/LevOrlov5404/matcha/internal/errors"
-	"github.com/LevOrlov5404/matcha/internal/models"
 	"github.com/jmoiron/sqlx"
+	iErrs "github.com/l-orlov/matcha/internal/errors"
+	"github.com/l-orlov/matcha/internal/models"
 	"github.com/lib/pq"
 )
 

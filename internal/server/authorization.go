@@ -2,10 +2,11 @@ package server
 
 import (
 	"net/http"
+	"strconv"
 
-	iErrs "github.com/LevOrlov5404/matcha/internal/errors"
-	"github.com/LevOrlov5404/matcha/internal/models"
 	"github.com/gin-gonic/gin"
+	iErrs "github.com/l-orlov/matcha/internal/errors"
+	"github.com/l-orlov/matcha/internal/models"
 	"github.com/pkg/errors"
 )
 
@@ -14,19 +15,83 @@ func (s *Server) SignIn(c *gin.Context) {
 
 	var user models.UserToSignIn
 	if err := c.BindJSON(&user); err != nil {
-		s.newErrorResponse(c, http.StatusBadRequest, iErrs.NewBusiness(err, ""))
+		s.newErrorResponse(c, http.StatusBadRequest, err)
 		return
 	}
 
-	token, err := s.services.User.GenerateToken(c, user.Username, user.Password)
+	userID, err := s.svc.AuthenticateUserByUsername(c, user.Username, user.Password, user.Fingerprint)
+	if err != nil {
+		s.newErrorResponse(c, http.StatusBadRequest, err)
+		return
+	}
+
+	accessToken, refreshToken, err := s.svc.CreateSession(strconv.FormatUint(userID, 10), user.Fingerprint)
 	if err != nil {
 		s.newErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, map[string]interface{}{
-		"token": token,
+		"accessToken":  accessToken,
+		"refreshToken": refreshToken,
 	})
+}
+
+func (s *Server) ValidateAccessToken(c *gin.Context) {
+	setHandlerNameToLogEntry(c, "ValidateAccessToken")
+
+	var req models.ValidateAccessTokenRequest
+	if err := c.BindJSON(&req); err != nil {
+		s.newErrorResponse(c, http.StatusBadRequest, err)
+		return
+	}
+
+	_, err := s.svc.UserAuthorization.ValidateAccessToken(req.AccessToken)
+	if err != nil {
+		s.newErrorResponse(c, http.StatusUnauthorized, err)
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (s *Server) RefreshSession(c *gin.Context) {
+	setHandlerNameToLogEntry(c, "RefreshSession")
+
+	var req models.RefreshSessionRequest
+	if err := c.BindJSON(&req); err != nil {
+		s.newErrorResponse(c, http.StatusBadRequest, err)
+		return
+	}
+
+	accessToken, refreshToken, err := s.svc.RefreshSession(req.RefreshToken, req.Fingerprint)
+	if err != nil {
+		s.newErrorResponse(c, http.StatusUnauthorized, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, map[string]interface{}{
+		"accessToken":  accessToken,
+		"refreshToken": refreshToken,
+	})
+}
+
+func (s *Server) Logout(c *gin.Context) {
+	setHandlerNameToLogEntry(c, "Logout")
+
+	var req models.LogoutRequest
+	if err := c.BindJSON(&req); err != nil {
+		s.newErrorResponse(c, http.StatusBadRequest, err)
+		return
+	}
+
+	err := s.svc.RevokeSession(req.AccessToken)
+	if err != nil {
+		s.newErrorResponse(c, http.StatusUnauthorized, err)
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
 
 func (s *Server) ResetPassword(c *gin.Context) {
@@ -40,7 +105,7 @@ func (s *Server) ResetPassword(c *gin.Context) {
 		return
 	}
 
-	user, err := s.services.User.GetUserByEmail(c, email)
+	user, err := s.svc.User.GetUserByEmail(c, email)
 	if err != nil {
 		s.newErrorResponse(c, http.StatusInternalServerError, err)
 		return
@@ -53,14 +118,14 @@ func (s *Server) ResetPassword(c *gin.Context) {
 		return
 	}
 
-	passwordResetConfirmToken, err := s.services.Verification.CreatePasswordResetConfirmToken(user.ID)
+	passwordResetConfirmToken, err := s.svc.Verification.CreatePasswordResetConfirmToken(user.ID)
 	if err != nil {
 		s.newErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	// send token by email
-	s.services.Mailer.SendResetPasswordConfirm(user.Email, passwordResetConfirmToken)
+	s.svc.Mailer.SendResetPasswordConfirm(user.Email, passwordResetConfirmToken)
 
 	c.Status(http.StatusOK)
 }

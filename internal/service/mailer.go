@@ -3,9 +3,8 @@ package service
 import (
 	"crypto/tls"
 
+	"github.com/l-orlov/matcha/internal/config"
 	"github.com/sirupsen/logrus"
-
-	"github.com/LevOrlov5404/matcha/internal/config"
 	goMail "gopkg.in/mail.v2"
 )
 

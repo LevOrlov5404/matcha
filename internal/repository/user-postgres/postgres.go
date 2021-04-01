@@ -3,8 +3,8 @@ package user_postgres
 import (
 	"fmt"
 
-	"github.com/LevOrlov5404/matcha/internal/config"
 	"github.com/jmoiron/sqlx"
+	"github.com/l-orlov/matcha/internal/config"
 )
 
 func ConnectToDB(cfg *config.Config) (*sqlx.DB, error) {

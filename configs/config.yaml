@@ -13,7 +13,12 @@ redis:
   idleTimeout: 240s
 
 jwt:
-  accessTokenLifetime: 4h
+  accessTokenLifetime: 1h
+  refreshTokenLifetime: 24h
+
+userBlocking:
+  lifetime: 30m
+  maxErrors: 3
 
 verification:
   emailConfirmTokenLifetime: 24h

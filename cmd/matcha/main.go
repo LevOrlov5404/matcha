@@ -9,12 +9,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/LevOrlov5404/matcha/internal/config"
-	"github.com/LevOrlov5404/matcha/internal/repository"
-	userPostgres "github.com/LevOrlov5404/matcha/internal/repository/user-postgres"
-	"github.com/LevOrlov5404/matcha/internal/server"
-	"github.com/LevOrlov5404/matcha/internal/service"
-	"github.com/LevOrlov5404/matcha/pkg/logger"
+	"github.com/l-orlov/matcha/internal/config"
+	"github.com/l-orlov/matcha/internal/repository"
+	userPostgres "github.com/l-orlov/matcha/internal/repository/user-postgres"
+	"github.com/l-orlov/matcha/internal/server"
+	"github.com/l-orlov/matcha/internal/service"
+	"github.com/l-orlov/matcha/pkg/logger"
 	_ "github.com/lib/pq"
 	"github.com/sethvargo/go-password/password"
 	"github.com/sirupsen/logrus"
@@ -62,9 +62,9 @@ func main() {
 	mailer := service.NewMailerService(cfg.Mailer, mailerLogEntry)
 	defer mailer.Close()
 
-	services := service.NewService(cfg, lg, repo, randomSymbolsGenerator, mailer)
+	svc := service.NewService(cfg, lg, repo, randomSymbolsGenerator, mailer)
 
-	srv := server.NewServer(cfg, lg, services)
+	srv := server.NewServer(cfg, lg, svc)
 	go func() {
 		if err := srv.Run(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			lg.Fatalf("error occurred while running http server: %v", err)

@@ -3,11 +3,11 @@ package repository
 import (
 	"context"
 
-	"github.com/LevOrlov5404/matcha/internal/config"
-	"github.com/LevOrlov5404/matcha/internal/models"
-	cacheRedis "github.com/LevOrlov5404/matcha/internal/repository/cache-redis"
-	userPostgres "github.com/LevOrlov5404/matcha/internal/repository/user-postgres"
 	"github.com/jmoiron/sqlx"
+	"github.com/l-orlov/matcha/internal/config"
+	"github.com/l-orlov/matcha/internal/models"
+	cacheRedis "github.com/l-orlov/matcha/internal/repository/cache-redis"
+	userPostgres "github.com/l-orlov/matcha/internal/repository/user-postgres"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,7 +23,18 @@ type (
 		DeleteUser(ctx context.Context, id uint64) error
 		ConfirmEmail(ctx context.Context, id uint64) error
 	}
-	Cache interface {
+	SessionCache interface {
+		PutSessionAndAccessToken(session models.Session, refreshToken string) error
+		GetSession(refreshToken string) (*models.Session, error)
+		DeleteSession(refreshToken string) error
+		DeleteUserToSession(userID, refreshToken string) error
+		GetAccessTokenData(accessTokenID string) (refreshToken string, err error)
+		DeleteAccessToken(accessTokenID string) error
+		AddUserBlocking(fingerprint string) (int64, error)
+		GetUserBlocking(fingerprint string) (int, error)
+		DeleteUserBlocking(fingerprint string) error
+	}
+	VerificationCache interface {
 		PutEmailConfirmToken(userID uint64, token string) error
 		GetEmailConfirmTokenData(token string) (userID uint64, err error)
 		DeleteEmailConfirmToken(token string) error
@@ -33,7 +44,8 @@ type (
 	}
 	Repository struct {
 		User
-		Cache
+		SessionCache
+		VerificationCache
 	}
 )
 
@@ -42,12 +54,17 @@ func NewRepository(
 ) *Repository {
 	cacheLogEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "cacheRedis"})
 	cacheOptions := cacheRedis.Options{
+		AccessTokenLifetime:               int(cfg.JWT.AccessTokenLifetime.Duration().Seconds()),
+		RefreshTokenLifetime:              int(cfg.JWT.RefreshTokenLifetime.Duration().Seconds()),
+		UserBlockingLifetime:              int(cfg.UserBlocking.Lifetime.Duration().Seconds()),
 		EmailConfirmTokenLifetime:         int(cfg.Verification.EmailConfirmTokenLifetime.Duration().Seconds()),
 		PasswordResetConfirmTokenLifetime: int(cfg.Verification.PasswordResetConfirmTokenLifetime.Duration().Seconds()),
 	}
+	cache := cacheRedis.New(cfg.Redis, cacheLogEntry, cacheOptions)
 
 	return &Repository{
-		User:  userPostgres.NewUserPostgres(db, cfg.PostgresDB.Timeout.Duration()),
-		Cache: cacheRedis.New(cfg.Redis, cacheLogEntry, cacheOptions),
+		User:              userPostgres.NewUserPostgres(db, cfg.PostgresDB.Timeout.Duration()),
+		SessionCache:      cache,
+		VerificationCache: cache,
 	}
 }

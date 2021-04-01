@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/LevOrlov5404/matcha/internal/repository"
+	"github.com/l-orlov/matcha/internal/repository"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -18,13 +18,13 @@ const (
 type (
 	VerificationService struct {
 		log       *logrus.Entry
-		repo      repository.Cache
+		repo      repository.VerificationCache
 		generator RandomTokenGenerator
 	}
 )
 
 func NewVerificationService(
-	log *logrus.Entry, repo repository.Cache, generator RandomTokenGenerator,
+	log *logrus.Entry, repo repository.VerificationCache, generator RandomTokenGenerator,
 ) *VerificationService {
 	return &VerificationService{
 		log:       log,

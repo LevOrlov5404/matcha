@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/LevOrlov5404/matcha/internal/config"
-	"github.com/LevOrlov5404/matcha/internal/service"
 	"github.com/gin-gonic/gin"
+	"github.com/l-orlov/matcha/internal/config"
+	"github.com/l-orlov/matcha/internal/service"
 	"github.com/sirupsen/logrus"
 )
 
@@ -17,18 +17,18 @@ type (
 	Server struct {
 		cfg        *config.Config
 		log        *logrus.Logger
-		services   *service.Service
+		svc        *service.Service
 		httpServer *http.Server
 	}
 )
 
 func NewServer(
-	cfg *config.Config, log *logrus.Logger, services *service.Service,
+	cfg *config.Config, log *logrus.Logger, svc *service.Service,
 ) *Server {
 	s := &Server{
-		cfg:      cfg,
-		log:      log,
-		services: services,
+		cfg: cfg,
+		log: log,
+		svc: svc,
 	}
 
 	s.httpServer = &http.Server{
@@ -52,14 +52,15 @@ func (s *Server) InitRoutes() *gin.Engine {
 		auth.POST("/sign-up", s.CreateUser)
 		auth.POST("/sign-in", s.SignIn)
 		router.POST("/reset-password", s.ResetPassword)
-		// auth.POST("/refresh-session", s.RefreshSession)
-		// auth.POST("/logout", s.Logout)
+		auth.POST("/validate-access-token", s.ValidateAccessToken)
+		auth.POST("/refresh-session", s.RefreshSession)
+		auth.POST("/logout", s.Logout)
 	}
 
 	router.POST("/confirm-email", s.ConfirmEmail)
 	router.POST("/confirm-reset-password", s.ConfirmPasswordReset)
 
-	api := router.Group("/api/v1", s.UserIdentityMiddleware)
+	api := router.Group("/api/v1", s.UserAuthorizationMiddleware)
 	{
 		users := api.Group("/users")
 		{

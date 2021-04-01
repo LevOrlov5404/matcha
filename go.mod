@@ -1,4 +1,4 @@
-module github.com/LevOrlov5404/matcha
+module github.com/l-orlov/matcha
 
 go 1.16
 

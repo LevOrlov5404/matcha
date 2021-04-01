@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
-	iErrs "github.com/LevOrlov5404/matcha/internal/errors"
-	"github.com/LevOrlov5404/matcha/internal/models"
 	"github.com/gin-gonic/gin"
+	iErrs "github.com/l-orlov/matcha/internal/errors"
+	"github.com/l-orlov/matcha/internal/models"
 	"github.com/pkg/errors"
 )
 
@@ -15,24 +15,24 @@ func (s *Server) CreateUser(c *gin.Context) {
 
 	var user models.UserToCreate
 	if err := c.BindJSON(&user); err != nil {
-		s.newErrorResponse(c, http.StatusBadRequest, iErrs.NewBusiness(err, ""))
+		s.newErrorResponse(c, http.StatusBadRequest, err)
 		return
 	}
 
-	id, err := s.services.User.CreateUser(c, user)
+	id, err := s.svc.User.CreateUser(c, user)
 	if err != nil {
 		s.newErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	emailConfirmToken, err := s.services.Verification.CreateEmailConfirmToken(id)
+	emailConfirmToken, err := s.svc.Verification.CreateEmailConfirmToken(id)
 	if err != nil {
 		s.newErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	// send token by email
-	s.services.Mailer.SendEmailConfirm(user.Email, emailConfirmToken)
+	s.svc.Mailer.SendEmailConfirm(user.Email, emailConfirmToken)
 
 	c.JSON(http.StatusOK, map[string]interface{}{
 		"id": id,
@@ -50,7 +50,7 @@ func (s *Server) GetUserByID(c *gin.Context) {
 		return
 	}
 
-	user, err := s.services.User.GetUserByID(c, id)
+	user, err := s.svc.User.GetUserByID(c, id)
 	if err != nil {
 		s.newErrorResponse(c, http.StatusInternalServerError, err)
 		return
@@ -69,11 +69,11 @@ func (s *Server) UpdateUser(c *gin.Context) {
 
 	var user models.User
 	if err := c.BindJSON(&user); err != nil {
-		s.newErrorResponse(c, http.StatusBadRequest, iErrs.NewBusiness(err, ""))
+		s.newErrorResponse(c, http.StatusBadRequest, err)
 		return
 	}
 
-	if err := s.services.User.UpdateUser(c, user); err != nil {
+	if err := s.svc.User.UpdateUser(c, user); err != nil {
 		s.newErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -86,11 +86,11 @@ func (s *Server) SetUserPassword(c *gin.Context) {
 
 	var user models.UserPassword
 	if err := c.BindJSON(&user); err != nil {
-		s.newErrorResponse(c, http.StatusBadRequest, iErrs.NewBusiness(err, ""))
+		s.newErrorResponse(c, http.StatusBadRequest, err)
 		return
 	}
 
-	if err := s.services.User.SetUserPassword(c, user.ID, user.Password); err != nil {
+	if err := s.svc.User.SetUserPassword(c, user.ID, user.Password); err != nil {
 		s.newErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -103,11 +103,11 @@ func (s *Server) ChangeUserPassword(c *gin.Context) {
 
 	var user models.UserPasswordToChange
 	if err := c.BindJSON(&user); err != nil {
-		s.newErrorResponse(c, http.StatusBadRequest, iErrs.NewBusiness(err, ""))
+		s.newErrorResponse(c, http.StatusBadRequest, err)
 		return
 	}
 
-	if err := s.services.User.ChangeUserPassword(c, user.ID, user.OldPassword, user.NewPassword); err != nil {
+	if err := s.svc.User.ChangeUserPassword(c, user.ID, user.OldPassword, user.NewPassword); err != nil {
 		s.newErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -118,7 +118,7 @@ func (s *Server) ChangeUserPassword(c *gin.Context) {
 func (s *Server) GetAllUsers(c *gin.Context) {
 	setHandlerNameToLogEntry(c, "GetAllUsers")
 
-	users, err := s.services.User.GetAllUsers(c)
+	users, err := s.svc.User.GetAllUsers(c)
 	if err != nil {
 		s.newErrorResponse(c, http.StatusInternalServerError, err)
 		return
@@ -143,7 +143,7 @@ func (s *Server) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	if err := s.services.User.DeleteUser(c, id); err != nil {
+	if err := s.svc.User.DeleteUser(c, id); err != nil {
 		s.newErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
