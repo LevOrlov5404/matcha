@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/l-orlov/matcha/internal/config"
+	iErrs "github.com/l-orlov/matcha/internal/errors"
 	"github.com/l-orlov/matcha/internal/models"
 	"github.com/l-orlov/matcha/internal/repository"
 	"github.com/pkg/errors"
@@ -40,12 +41,16 @@ func (s *AuthenticationService) AuthenticateUserByUsername(
 		return 0, err
 	}
 
-	u, err := s.repo.User.GetUserByUsername(ctx, username)
+	user, err := s.repo.User.GetUserByUsername(ctx, username)
 	if err != nil {
 		return 0, err
 	}
 
-	if err := s.checkUserPasswordHash(fingerprint, u.Password, password); err != nil {
+	if user == nil {
+		return 0, iErrs.NewBusiness(errors.New("user does not exist"), "")
+	}
+
+	if err := s.checkUserPasswordHash(fingerprint, user.Password, password); err != nil {
 		return 0, err
 	}
 
@@ -53,7 +58,7 @@ func (s *AuthenticationService) AuthenticateUserByUsername(
 		s.log.Errorf("err while DeleteUserBlocking: %v", err)
 	}
 
-	return u.ID, nil
+	return user.ID, nil
 }
 
 func (s *AuthenticationService) checkUserBlocking(fingerprint string) error {

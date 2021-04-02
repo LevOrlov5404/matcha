@@ -25,6 +25,7 @@ CREATE TABLE users
     avatar_url         TEXT          NOT NULL DEFAULT '',
     pictures_url       TEXT[]        NOT NULL DEFAULT ARRAY []::TEXT[],
     likes_num          INTEGER       NOT NULL DEFAULT 0,
+    views_num          INTEGER       NOT NULL DEFAULT 0,
     gps_position       TEXT          NOT NULL DEFAULT ''
 );
 

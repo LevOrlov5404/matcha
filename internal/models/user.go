@@ -49,6 +49,7 @@ type (
 		AvatarURL         string   `json:"avatarURL"`
 		PicturesURL       []string `json:"picturesURL"`
 		LikesNum          int      `json:"likesNum"`
+		ViewsNum          int      `json:"viewsNum"`
 		GPSPosition       string   `json:"gpsPosition"`
 	}
 )
