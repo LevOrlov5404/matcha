@@ -66,13 +66,6 @@ func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*models
 }
 
 func (s *UserService) UpdateUser(ctx context.Context, user models.User) error {
-	hashedPassword, err := models.HashPassword(user.Password)
-	if err != nil {
-		return iErrs.New(err)
-	}
-
-	user.Password = hashedPassword
-
 	return s.repo.UpdateUser(ctx, user)
 }
 
@@ -117,4 +110,12 @@ func (s *UserService) DeleteUser(ctx context.Context, id uint64) error {
 
 func (s *UserService) ConfirmEmail(ctx context.Context, id uint64) error {
 	return s.repo.ConfirmEmail(ctx, id)
+}
+
+func (s *UserService) GetUserProfileByID(ctx context.Context, id uint64) (*models.UserProfile, error) {
+	return s.repo.GetUserProfileByID(ctx, id)
+}
+
+func (s *UserService) UpdateUserProfile(ctx context.Context, user models.UserProfile) error {
+	return s.repo.UpdateUserProfile(ctx, user)
 }

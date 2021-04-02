@@ -110,14 +110,14 @@ SELECT id, email, username, first_name, last_name, password, is_email_confirmed 
 
 func (r *UserPostgres) UpdateUser(ctx context.Context, user models.User) error {
 	query := fmt.Sprintf(`
-UPDATE %s SET username = $1, first_name = $2, last_name = $3, password = $4 WHERE id = $5`, usersTable)
+UPDATE %s SET username = $1, first_name = $2, last_name = $3, WHERE id = $4`, usersTable)
 
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
 
-	_, err := r.db.ExecContext(dbCtx, query, user.Username, user.FirstName, user.LastName, user.Password, user.ID)
+	_, err := r.db.ExecContext(dbCtx, query, user.Username, user.FirstName, user.LastName, user.ID)
 	if err != nil {
-		return err
+		return getDBError(err)
 	}
 
 	return nil
@@ -129,9 +129,8 @@ func (r *UserPostgres) UpdateUserPassword(ctx context.Context, userID uint64, pa
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
 
-	_, err := r.db.ExecContext(dbCtx, query, password, userID)
-	if err != nil {
-		return err
+	if _, err := r.db.ExecContext(dbCtx, query, password, userID); err != nil {
+		return getDBError(err)
 	}
 
 	return nil
@@ -156,8 +155,7 @@ func (r *UserPostgres) DeleteUser(ctx context.Context, id uint64) error {
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
 
-	_, err := r.db.ExecContext(dbCtx, query, id)
-	if err != nil {
+	if _, err := r.db.ExecContext(dbCtx, query, id); err != nil {
 		return err
 	}
 
@@ -170,9 +168,58 @@ func (r *UserPostgres) ConfirmEmail(ctx context.Context, id uint64) error {
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
 
-	_, err := r.db.ExecContext(dbCtx, query, id)
+	if _, err := r.db.ExecContext(dbCtx, query, id); err != nil {
+		return getDBError(err)
+	}
+
+	return nil
+}
+
+func (r *UserPostgres) GetUserProfileByID(ctx context.Context, id uint64) (*models.UserProfile, error) {
+	query := fmt.Sprintf(`
+SELECT id, email, username, first_name, last_name, is_email_confirmed,
+gender, sexual_preferences, biography, tags, avatar_url, pictures_url, likes_num, gps_position
+FROM %s WHERE id=$1`, usersTable)
+
+	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
+	defer cancel()
+
+	row := r.db.QueryRowContext(dbCtx, query, id)
+	if err := row.Err(); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	var user models.UserProfile
+	if err := row.Scan(&user.ID, &user.Email, &user.Username, &user.FirstName,
+		&user.LastName, &user.IsEmailConfirmed, &user.Gender, &user.SexualPreferences,
+		&user.Biography, pq.Array(&user.Tags), &user.AvatarURL, pq.Array(&user.PicturesURL),
+		&user.LikesNum, &user.GPSPosition); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (r *UserPostgres) UpdateUserProfile(ctx context.Context, user models.UserProfile) error {
+	query := fmt.Sprintf(`
+UPDATE %s SET username = $1, first_name = $2, last_name = $3,
+gender = $4, sexual_preferences = $5, biography = $6, tags = $7,
+avatar_url = $8, pictures_url = $9, likes_num = $10, gps_position = $11
+WHERE id = $12`, usersTable)
+
+	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
+	defer cancel()
+
+	_, err := r.db.ExecContext(dbCtx, query, user.Username, user.FirstName, user.LastName,
+		user.Gender, user.SexualPreferences, user.Biography, pq.Array(&user.Tags),
+		user.AvatarURL, pq.Array(&user.PicturesURL), user.LikesNum, user.GPSPosition,
+		user.ID)
 	if err != nil {
-		return err
+		return getDBError(err)
 	}
 
 	return nil

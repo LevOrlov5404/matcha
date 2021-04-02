@@ -24,6 +24,8 @@ type (
 		GetAllUsers(ctx context.Context) ([]models.User, error)
 		DeleteUser(ctx context.Context, id uint64) error
 		ConfirmEmail(ctx context.Context, id uint64) error
+		GetUserProfileByID(ctx context.Context, id uint64) (*models.UserProfile, error)
+		UpdateUserProfile(ctx context.Context, user models.UserProfile) error
 	}
 	UserAuthentication interface {
 		AuthenticateUserByUsername(ctx context.Context, username, password, fingerprint string) (userID uint64, err error)
@@ -62,9 +64,7 @@ func NewService(
 	verificationLogEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "verificationService"})
 
 	return &Service{
-		User: NewUserService(
-			repo.User, cfg.JWT.AccessTokenLifetime.Duration(), cfg.JWT.SigningKey,
-		),
+		User:               NewUserService(repo.User, cfg.JWT.AccessTokenLifetime.Duration(), cfg.JWT.SigningKey),
 		UserAuthentication: NewAuthenticationService(cfg, authenticationLogEntry, repo),
 		UserAuthorization:  NewAuthorizationService(cfg, repo),
 		Verification:       NewVerificationService(verificationLogEntry, repo.VerificationCache, generator),

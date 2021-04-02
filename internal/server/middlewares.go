@@ -18,20 +18,9 @@ const (
 )
 
 func (s *Server) InitMiddleware(c *gin.Context) {
-	// ToDo: add metrics for request time
-	// start := time.Now()
-
 	requestID := uuid.New().String()
 	logEntry := logrus.NewEntry(s.log).WithField("request-id", requestID)
-	// logEntry.Debugf("Start request at %s", start.Format(time.RFC1123Z))
-
 	c.Set(keyLogEntry, logEntry)
-
-	c.Next()
-
-	// logEntry = getLogEntry(c)
-	// logEntry.WithField("elapsed", time.Since(start).String()).
-	//	Debugf("Complete request at %s", time.Now().Format(time.RFC1123Z))
 }
 
 func (s *Server) UserAuthorizationMiddleware(c *gin.Context) {

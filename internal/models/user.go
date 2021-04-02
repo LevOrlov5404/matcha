@@ -1,6 +1,8 @@
 package models
 
-import "golang.org/x/crypto/bcrypt"
+import (
+	"golang.org/x/crypto/bcrypt"
+)
 
 type (
 	UserToCreate struct {
@@ -32,6 +34,22 @@ type (
 		ID          uint64 `json:"id" binding:"required"`
 		OldPassword string `json:"oldPassword" binding:"required"`
 		NewPassword string `json:"newPassword" binding:"required"`
+	}
+	UserProfile struct {
+		ID                uint64   `json:"id" binding:"required"`
+		Email             string   `json:"email" binding:"required"`
+		Username          string   `json:"username" binding:"required"`
+		FirstName         string   `json:"firstName" binding:"required"`
+		LastName          string   `json:"lastName" binding:"required"`
+		IsEmailConfirmed  bool     `json:"isEmailConfirmed"`
+		Gender            int      `json:"gender"`
+		SexualPreferences int      `json:"sexualPreferences"`
+		Biography         string   `json:"biography"`
+		Tags              []string `json:"tags"`
+		AvatarURL         string   `json:"avatarURL"`
+		PicturesURL       []string `json:"picturesURL"`
+		LikesNum          int      `json:"likesNum"`
+		GPSPosition       string   `json:"gpsPosition"`
 	}
 )
 

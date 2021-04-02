@@ -71,6 +71,8 @@ func (s *Server) InitRoutes() *gin.Engine {
 			users.PUT("/set-password", s.SetUserPassword)
 			users.PUT("/change-password", s.ChangeUserPassword)
 			users.DELETE("/:id", s.DeleteUser)
+			users.GET("/profile/by-id/:id", s.GetUserProfileByID)
+			users.PUT("/profile", s.UpdateUserProfile)
 		}
 	}
 

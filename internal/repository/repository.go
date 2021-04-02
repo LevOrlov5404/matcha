@@ -22,6 +22,8 @@ type (
 		GetAllUsers(ctx context.Context) ([]models.User, error)
 		DeleteUser(ctx context.Context, id uint64) error
 		ConfirmEmail(ctx context.Context, id uint64) error
+		GetUserProfileByID(ctx context.Context, id uint64) (*models.UserProfile, error)
+		UpdateUserProfile(ctx context.Context, user models.UserProfile) error
 	}
 	SessionCache interface {
 		PutSessionAndAccessToken(session models.Session, refreshToken string) error
@@ -52,6 +54,8 @@ type (
 func NewRepository(
 	cfg *config.Config, log *logrus.Logger, db *sqlx.DB,
 ) *Repository {
+	userRepo := userPostgres.NewUserPostgres(db, cfg.PostgresDB.Timeout.Duration())
+
 	cacheLogEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "cacheRedis"})
 	cacheOptions := cacheRedis.Options{
 		AccessTokenLifetime:               int(cfg.JWT.AccessTokenLifetime.Duration().Seconds()),
@@ -63,7 +67,7 @@ func NewRepository(
 	cache := cacheRedis.New(cfg.Redis, cacheLogEntry, cacheOptions)
 
 	return &Repository{
-		User:              userPostgres.NewUserPostgres(db, cfg.PostgresDB.Timeout.Duration()),
+		User:              userRepo,
 		SessionCache:      cache,
 		VerificationCache: cache,
 	}
