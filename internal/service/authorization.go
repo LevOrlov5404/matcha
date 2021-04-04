@@ -4,11 +4,17 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gomodule/redigo/redis"
 	"github.com/google/uuid"
 	"github.com/l-orlov/matcha/internal/config"
 	"github.com/l-orlov/matcha/internal/models"
 	"github.com/l-orlov/matcha/internal/repository"
 	"github.com/pkg/errors"
+)
+
+var (
+	ErrNotActiveAccessToken = errors.New("not active accessToken")
+	ErrSessionNotFound      = errors.New("session not found")
 )
 
 type (
@@ -25,7 +31,7 @@ func NewAuthorizationService(cfg *config.Config, repo *repository.Repository) *A
 	}
 }
 
-func (s *AuthorizationService) CreateSession(userID, fingerprint string) (accessToken, refreshToken string, err error) {
+func (s *AuthorizationService) CreateSession(userID string) (accessToken, refreshToken string, err error) {
 	accessTokenID := uuid.New().String()
 	accessToken, err = newToken(
 		userID, accessTokenID, s.cfg.JWT.SigningKey, s.cfg.JWT.AccessTokenLifetime.Duration(),
@@ -39,7 +45,6 @@ func (s *AuthorizationService) CreateSession(userID, fingerprint string) (access
 	err = s.repo.PutSessionAndAccessToken(models.Session{
 		UserID:        userID,
 		AccessTokenID: accessTokenID,
-		Fingerprint:   fingerprint,
 	}, refreshToken)
 	if err != nil {
 		return "", "", err
@@ -56,18 +61,26 @@ func (s *AuthorizationService) ValidateAccessToken(accessToken string) (*jwt.Sta
 
 	// check accessToken is active
 	if _, err := s.repo.GetAccessTokenData(accessTokenClaims.Id); err != nil {
-		return nil, errors.Wrap(err, "not active accessToken")
+		if errors.Is(err, redis.ErrNil) {
+			return nil, ErrNotActiveAccessToken
+		}
+
+		return nil, err
 	}
 
 	return accessTokenClaims, nil
 }
 
 func (s *AuthorizationService) RefreshSession(
-	currentRefreshToken, fingerprint string,
+	currentRefreshToken string,
 ) (accessToken, refreshToken string, err error) {
 	session, err := s.repo.GetSession(currentRefreshToken)
 	if err != nil {
-		return "", "", errors.Wrap(err, "session not found")
+		if errors.Is(err, redis.ErrNil) {
+			return "", "", ErrSessionNotFound
+		}
+
+		return "", "", err
 	}
 
 	if err = s.repo.DeleteSession(currentRefreshToken); err != nil {
@@ -82,11 +95,7 @@ func (s *AuthorizationService) RefreshSession(
 		return "", "", err
 	}
 
-	if session.Fingerprint != fingerprint {
-		return "", "", errors.New("fingerprint does not match current one")
-	}
-
-	return s.CreateSession(session.UserID, fingerprint)
+	return s.CreateSession(session.UserID)
 }
 
 func (s *AuthorizationService) RevokeSession(accessToken string) error {
@@ -97,7 +106,11 @@ func (s *AuthorizationService) RevokeSession(accessToken string) error {
 
 	refreshToken, err := s.repo.GetAccessTokenData(accessTokenClaims.Id)
 	if err != nil {
-		return errors.Wrap(err, "not active accessToken")
+		if errors.Is(err, redis.ErrNil) {
+			return ErrNotActiveAccessToken
+		}
+
+		return err
 	}
 
 	if err := s.repo.DeleteAccessToken(accessTokenClaims.Id); err != nil {
@@ -116,6 +129,10 @@ func (s *AuthorizationService) RevokeSession(accessToken string) error {
 	}
 
 	return nil
+}
+
+func (s *AuthorizationService) GetAccessTokenClaims(accessToken string) (*jwt.StandardClaims, error) {
+	return getTokenClaims(accessToken, s.cfg.JWT.SigningKey)
 }
 
 func newToken(userID, tokenID, signingKey string, lifetime time.Duration) (string, error) {

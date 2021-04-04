@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/l-orlov/matcha/internal/service"
 	"github.com/sirupsen/logrus"
 )
 
@@ -24,25 +25,54 @@ func (s *Server) InitMiddleware(c *gin.Context) {
 }
 
 func (s *Server) UserAuthorizationMiddleware(c *gin.Context) {
-	header := c.GetHeader(headerAuth)
-	if header == "" {
-		s.newErrorResponse(c, http.StatusUnauthorized, errors.New("empty auth header"))
-		return
-	}
-
-	headerParts := strings.Split(header, " ")
-	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
-		s.newErrorResponse(c, http.StatusUnauthorized, errors.New("invalid auth header"))
-		return
-	}
-
-	accessTokenClaims, err := s.svc.UserAuthorization.ValidateAccessToken(headerParts[1])
+	accessToken, err := c.Cookie(accessTokenCookieName)
 	if err != nil {
-		s.newErrorResponse(c, http.StatusUnauthorized, err)
-		return
+		getLogEntry(c).Debug(err)
 	}
 
-	c.Set(ctxUser, accessTokenClaims.Id)
+	if accessToken == "" {
+		// try to get accessToken from header
+		header := c.GetHeader(headerAuth)
+		if header != "" {
+			headerParts := strings.Split(header, " ")
+			if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+				s.newErrorResponse(c, http.StatusUnauthorized, errors.New("invalid auth header"))
+				return
+			}
+
+			accessToken = headerParts[1]
+		}
+	}
+
+	accessTokenClaims, err := s.svc.UserAuthorization.ValidateAccessToken(accessToken)
+	if err != nil {
+		if !errors.Is(err, service.ErrNotActiveAccessToken) {
+			s.newErrorResponse(c, http.StatusUnauthorized, err)
+			return
+		}
+
+		refreshToken, err := c.Cookie(refreshTokenCookieName)
+		if err != nil {
+			s.newErrorResponse(c, http.StatusUnauthorized, err)
+			return
+		}
+
+		newAccessToken, newRefreshToken, err := s.svc.UserAuthorization.RefreshSession(refreshToken)
+		if err != nil {
+			s.newErrorResponse(c, http.StatusUnauthorized, err)
+			return
+		}
+
+		accessTokenClaims, err = s.svc.UserAuthorization.GetAccessTokenClaims(newAccessToken)
+		if err != nil {
+			s.newErrorResponse(c, http.StatusUnauthorized, err)
+			return
+		}
+
+		s.setTokensCookies(c, newAccessToken, newRefreshToken)
+	}
+
+	c.Set(ctxUser, accessTokenClaims.Subject)
 }
 
 func setHandlerNameToLogEntry(c *gin.Context, handlerName string) {

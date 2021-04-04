@@ -14,9 +14,14 @@ import (
 const timeout = 10 * time.Second
 
 type (
+	Options struct {
+		AccessTokenCookieMaxAge  int
+		RefreshTokenCookieMaxAge int
+	}
 	Server struct {
 		cfg        *config.Config
 		log        *logrus.Logger
+		options    Options
 		svc        *service.Service
 		httpServer *http.Server
 	}
@@ -28,6 +33,10 @@ func NewServer(
 	s := &Server{
 		cfg: cfg,
 		log: log,
+		options: Options{
+			AccessTokenCookieMaxAge:  int(cfg.JWT.AccessTokenLifetime.Duration().Seconds()),
+			RefreshTokenCookieMaxAge: int(cfg.JWT.RefreshTokenLifetime.Duration().Seconds()),
+		},
 		svc: svc,
 	}
 

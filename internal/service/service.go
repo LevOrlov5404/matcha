@@ -31,10 +31,11 @@ type (
 		AuthenticateUserByUsername(ctx context.Context, username, password, fingerprint string) (userID uint64, err error)
 	}
 	UserAuthorization interface {
-		CreateSession(userID, fingerprint string) (accessToken, refreshToken string, err error)
+		CreateSession(userID string) (accessToken, refreshToken string, err error)
 		ValidateAccessToken(accessToken string) (*jwt.StandardClaims, error)
-		RefreshSession(currentRefreshToken, fingerprint string) (accessToken, refreshToken string, err error)
+		RefreshSession(currentRefreshToken string) (accessToken, refreshToken string, err error)
 		RevokeSession(accessToken string) error
+		GetAccessTokenClaims(accessToken string) (*jwt.StandardClaims, error)
 	}
 	Verification interface {
 		CreateEmailConfirmToken(userID uint64) (string, error)

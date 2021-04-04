@@ -10,6 +10,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	accessTokenCookieName  = "access_token"
+	refreshTokenCookieName = "refresh_token"
+)
+
 func (s *Server) SignIn(c *gin.Context) {
 	setHandlerNameToLogEntry(c, "SignIn")
 
@@ -25,12 +30,13 @@ func (s *Server) SignIn(c *gin.Context) {
 		return
 	}
 
-	accessToken, refreshToken, err := s.svc.CreateSession(strconv.FormatUint(userID, 10), user.Fingerprint)
+	accessToken, refreshToken, err := s.svc.CreateSession(strconv.FormatUint(userID, 10))
 	if err != nil {
 		s.newErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
 
+	s.setTokensCookies(c, accessToken, refreshToken)
 	c.JSON(http.StatusOK, map[string]interface{}{
 		"accessToken":  accessToken,
 		"refreshToken": refreshToken,
@@ -64,7 +70,7 @@ func (s *Server) RefreshSession(c *gin.Context) {
 		return
 	}
 
-	accessToken, refreshToken, err := s.svc.RefreshSession(req.RefreshToken, req.Fingerprint)
+	accessToken, refreshToken, err := s.svc.RefreshSession(req.RefreshToken)
 	if err != nil {
 		s.newErrorResponse(c, http.StatusUnauthorized, err)
 		return
@@ -128,4 +134,15 @@ func (s *Server) ResetPassword(c *gin.Context) {
 	s.svc.Mailer.SendResetPasswordConfirm(user.Email, passwordResetConfirmToken)
 
 	c.Status(http.StatusOK)
+}
+
+func (s *Server) setTokensCookies(c *gin.Context, accessToken, refreshToken string) {
+	c.SetCookie(
+		accessTokenCookieName, accessToken, s.options.AccessTokenCookieMaxAge,
+		"/", "", false, true,
+	)
+	c.SetCookie(
+		refreshTokenCookieName, refreshToken, s.options.RefreshTokenCookieMaxAge,
+		"/", "", false, true,
+	)
 }

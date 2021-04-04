@@ -3,7 +3,6 @@ package models
 type Session struct {
 	UserID        string `json:"userId"`
 	AccessTokenID string `json:"accessTokenId"`
-	Fingerprint   string `json:"fingerprint"`
 }
 
 type ValidateAccessTokenRequest struct {
@@ -12,7 +11,6 @@ type ValidateAccessTokenRequest struct {
 
 type RefreshSessionRequest struct {
 	RefreshToken string `json:"refreshToken" binding:"required"`
-	Fingerprint  string `json:"fingerprint" binding:"required"`
 }
 
 type LogoutRequest struct {
