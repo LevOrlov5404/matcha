@@ -52,8 +52,7 @@ func (s *Server) ValidateAccessToken(c *gin.Context) {
 		return
 	}
 
-	_, err := s.svc.UserAuthorization.ValidateAccessToken(req.AccessToken)
-	if err != nil {
+	if _, err := s.svc.UserAuthorization.ValidateAccessToken(req.AccessToken); err != nil {
 		s.newErrorResponse(c, http.StatusUnauthorized, err)
 		return
 	}
@@ -85,14 +84,23 @@ func (s *Server) RefreshSession(c *gin.Context) {
 func (s *Server) Logout(c *gin.Context) {
 	setHandlerNameToLogEntry(c, "Logout")
 
-	var req models.LogoutRequest
-	if err := c.BindJSON(&req); err != nil {
-		s.newErrorResponse(c, http.StatusBadRequest, err)
-		return
+	accessToken, err := s.Cookie(c, accessTokenCookieName)
+	if err != nil {
+		getLogEntry(c).Debug(err)
 	}
 
-	err := s.svc.RevokeSession(req.AccessToken)
-	if err != nil {
+	if accessToken == "" {
+		// try to get accessToken from request
+		var req models.LogoutRequest
+		if err := c.BindJSON(&req); err != nil {
+			s.newErrorResponse(c, http.StatusBadRequest, err)
+			return
+		}
+
+		accessToken = req.AccessToken
+	}
+
+	if err = s.svc.RevokeSession(accessToken); err != nil {
 		s.newErrorResponse(c, http.StatusUnauthorized, err)
 		return
 	}
@@ -137,12 +145,35 @@ func (s *Server) ResetPassword(c *gin.Context) {
 }
 
 func (s *Server) setTokensCookies(c *gin.Context, accessToken, refreshToken string) {
-	c.SetCookie(
-		accessTokenCookieName, accessToken, s.options.AccessTokenCookieMaxAge,
-		"/", "", false, true,
-	)
-	c.SetCookie(
-		refreshTokenCookieName, refreshToken, s.options.RefreshTokenCookieMaxAge,
-		"/", "", false, true,
-	)
+	if encodedAccessToken, err := s.options.SecureCookie.Encode(accessTokenCookieName, accessToken); err == nil {
+		c.SetCookie(
+			accessTokenCookieName, encodedAccessToken, s.options.AccessTokenCookieMaxAge,
+			"/", "", false, true,
+		)
+	} else {
+		getLogEntry(c).Error(err)
+	}
+
+	if encodedRefreshToken, err := s.options.SecureCookie.Encode(refreshTokenCookieName, refreshToken); err == nil {
+		c.SetCookie(
+			refreshTokenCookieName, encodedRefreshToken, s.options.RefreshTokenCookieMaxAge,
+			"/", "", false, true,
+		)
+	} else {
+		getLogEntry(c).Error(err)
+	}
+}
+
+func (s *Server) Cookie(c *gin.Context, name string) (string, error) {
+	value, err := c.Cookie(name)
+	if err != nil {
+		return "", err
+	}
+
+	var decodedValue string
+	if err := s.options.SecureCookie.Decode(name, value, &decodedValue); err != nil {
+		return "", err
+	}
+
+	return decodedValue, nil
 }

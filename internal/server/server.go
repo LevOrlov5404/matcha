@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/securecookie"
 	"github.com/l-orlov/matcha/internal/config"
 	"github.com/l-orlov/matcha/internal/service"
 	"github.com/sirupsen/logrus"
@@ -17,6 +18,7 @@ type (
 	Options struct {
 		AccessTokenCookieMaxAge  int
 		RefreshTokenCookieMaxAge int
+		SecureCookie             *securecookie.SecureCookie
 	}
 	Server struct {
 		cfg        *config.Config
@@ -36,6 +38,7 @@ func NewServer(
 		options: Options{
 			AccessTokenCookieMaxAge:  int(cfg.JWT.AccessTokenLifetime.Duration().Seconds()),
 			RefreshTokenCookieMaxAge: int(cfg.JWT.RefreshTokenLifetime.Duration().Seconds()),
+			SecureCookie:             securecookie.New(cfg.Cookie.HashKey, cfg.Cookie.BlockKey),
 		},
 		svc: svc,
 	}

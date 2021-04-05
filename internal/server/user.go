@@ -90,6 +90,8 @@ func (s *Server) SetUserPassword(c *gin.Context) {
 		return
 	}
 
+	// ToDo: add deleting all sessions
+
 	if err := s.svc.User.SetUserPassword(c, user.ID, user.Password); err != nil {
 		s.newErrorResponse(c, http.StatusInternalServerError, err)
 		return

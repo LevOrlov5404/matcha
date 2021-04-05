@@ -14,6 +14,7 @@ type (
 		PostgresDB   PostgresDB    `yaml:"postgresDB"`
 		Redis        Redis         `yaml:"redis"`
 		JWT          JWT           `yaml:"jwt"`
+		Cookie       Cookie        `yaml:"cookie"`
 		UserBlocking UserBlocking  `yaml:"userBlocking"`
 		Verification Verification  `yaml:"verification"`
 		Mailer       Mailer        `yaml:"mailer"`
@@ -42,7 +43,11 @@ type (
 	JWT struct {
 		AccessTokenLifetime  DurationConfig `yaml:"accessTokenLifetime"`
 		RefreshTokenLifetime DurationConfig `yaml:"refreshTokenLifetime"`
-		SigningKey           string         `yaml:"signingKey" env:"JWT_SIGNING_KEY,default=test"`
+		SigningKey           StdBase64      `yaml:"signingKey" env:"JWT_SIGNING_KEY,default=dGVzdA=="`
+	}
+	Cookie struct {
+		HashKey  StdBase64 `yaml:"hashKey" env:"COOKIE_HASH_KEY,default=dGVzdA=="`
+		BlockKey StdBase64 `yaml:"blockKey" env:"COOKIE_BLOCK_KEY,default=dGVzdA=="`
 	}
 	UserBlocking struct {
 		Lifetime  DurationConfig `yaml:"lifetime"`

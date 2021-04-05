@@ -14,17 +14,15 @@ type (
 	UserService struct {
 		repo                repository.User
 		accessTokenLifetime time.Duration
-		signingKey          string
 	}
 )
 
 func NewUserService(
-	repo repository.User, tokenLifetime time.Duration, signingKey string,
+	repo repository.User, tokenLifetime time.Duration,
 ) *UserService {
 	return &UserService{
 		repo:                repo,
 		accessTokenLifetime: tokenLifetime,
-		signingKey:          signingKey,
 	}
 }
 

@@ -65,7 +65,7 @@ func NewService(
 	verificationLogEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "verificationService"})
 
 	return &Service{
-		User:               NewUserService(repo.User, cfg.JWT.AccessTokenLifetime.Duration(), cfg.JWT.SigningKey),
+		User:               NewUserService(repo.User, cfg.JWT.AccessTokenLifetime.Duration()),
 		UserAuthentication: NewAuthenticationService(cfg, authenticationLogEntry, repo),
 		UserAuthorization:  NewAuthorizationService(cfg, repo),
 		Verification:       NewVerificationService(verificationLogEntry, repo.VerificationCache, generator),

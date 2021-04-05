@@ -36,8 +36,6 @@ func (d *DurationConfig) UnmarshalYAML(unmarshal func(interface{}) error) error 
 		*d = DurationConfig(typedValue)
 
 		return nil
-	case nil:
-		return nil
 	default:
 		return errors.Errorf("yaml: cannot unmarshal %v into value of type DurationConfig", v)
 	}

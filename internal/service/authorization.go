@@ -135,7 +135,7 @@ func (s *AuthorizationService) GetAccessTokenClaims(accessToken string) (*jwt.St
 	return getTokenClaims(accessToken, s.cfg.JWT.SigningKey)
 }
 
-func newToken(userID, tokenID, signingKey string, lifetime time.Duration) (string, error) {
+func newToken(userID, tokenID string, signingKey []byte, lifetime time.Duration) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.StandardClaims{
 		Id:        tokenID,
 		NotBefore: time.Now().Unix(),
@@ -144,10 +144,10 @@ func newToken(userID, tokenID, signingKey string, lifetime time.Duration) (strin
 		Subject:   userID,
 	})
 
-	return token.SignedString([]byte(signingKey))
+	return token.SignedString(signingKey)
 }
 
-func validateToken(token string, signingKey string) (*jwt.StandardClaims, error) {
+func validateToken(token string, signingKey []byte) (*jwt.StandardClaims, error) {
 	claims, err := getTokenClaims(token, signingKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "not valid token")
@@ -161,7 +161,7 @@ func validateToken(token string, signingKey string) (*jwt.StandardClaims, error)
 	return claims, nil
 }
 
-func getTokenClaims(tokenString string, signingKey string) (*jwt.StandardClaims, error) {
+func getTokenClaims(tokenString string, signingKey []byte) (*jwt.StandardClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.Errorf("unexpected signing method: %v", token.Header["alg"])

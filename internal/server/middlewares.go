@@ -25,7 +25,7 @@ func (s *Server) InitMiddleware(c *gin.Context) {
 }
 
 func (s *Server) UserAuthorizationMiddleware(c *gin.Context) {
-	accessToken, err := c.Cookie(accessTokenCookieName)
+	accessToken, err := s.Cookie(c, accessTokenCookieName)
 	if err != nil {
 		getLogEntry(c).Debug(err)
 	}
@@ -51,7 +51,7 @@ func (s *Server) UserAuthorizationMiddleware(c *gin.Context) {
 			return
 		}
 
-		refreshToken, err := c.Cookie(refreshTokenCookieName)
+		refreshToken, err := s.Cookie(c, refreshTokenCookieName)
 		if err != nil {
 			s.newErrorResponse(c, http.StatusUnauthorized, err)
 			return
