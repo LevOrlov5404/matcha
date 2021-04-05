@@ -3,7 +3,6 @@ package server
 import (
 	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -12,36 +11,22 @@ import (
 )
 
 const (
-	headerAuth = "Authorization"
-	ctxUser    = "userID"
-
-	keyLogEntry = "log-entry"
+	ctxUserID   = "userID"
+	ctxLogEntry = "log-entry"
 )
 
 func (s *Server) InitMiddleware(c *gin.Context) {
 	requestID := uuid.New().String()
 	logEntry := logrus.NewEntry(s.log).WithField("request-id", requestID)
-	c.Set(keyLogEntry, logEntry)
+	c.Set(ctxLogEntry, logEntry)
 }
 
 func (s *Server) UserAuthorizationMiddleware(c *gin.Context) {
 	accessToken, err := s.Cookie(c, accessTokenCookieName)
 	if err != nil {
 		getLogEntry(c).Debug(err)
-	}
-
-	if accessToken == "" {
-		// try to get accessToken from header
-		header := c.GetHeader(headerAuth)
-		if header != "" {
-			headerParts := strings.Split(header, " ")
-			if len(headerParts) != 2 || headerParts[0] != "Bearer" {
-				s.newErrorResponse(c, http.StatusUnauthorized, errors.New("invalid auth header"))
-				return
-			}
-
-			accessToken = headerParts[1]
-		}
+		s.refreshSessionByRefreshTokenCookie(c)
+		return
 	}
 
 	accessTokenClaims, err := s.svc.UserAuthorization.ValidateAccessToken(accessToken)
@@ -51,39 +36,45 @@ func (s *Server) UserAuthorizationMiddleware(c *gin.Context) {
 			return
 		}
 
-		refreshToken, err := s.Cookie(c, refreshTokenCookieName)
-		if err != nil {
-			s.newErrorResponse(c, http.StatusUnauthorized, err)
-			return
-		}
-
-		newAccessToken, newRefreshToken, err := s.svc.UserAuthorization.RefreshSession(refreshToken)
-		if err != nil {
-			s.newErrorResponse(c, http.StatusUnauthorized, err)
-			return
-		}
-
-		accessTokenClaims, err = s.svc.UserAuthorization.GetAccessTokenClaims(newAccessToken)
-		if err != nil {
-			s.newErrorResponse(c, http.StatusUnauthorized, err)
-			return
-		}
-
-		s.setTokensCookies(c, newAccessToken, newRefreshToken)
+		s.refreshSessionByRefreshTokenCookie(c)
+		return
 	}
 
-	c.Set(ctxUser, accessTokenClaims.Subject)
+	c.Set(ctxUserID, accessTokenClaims.Subject)
+}
+
+func (s *Server) refreshSessionByRefreshTokenCookie(c *gin.Context) {
+	refreshToken, err := s.Cookie(c, refreshTokenCookieName)
+	if err != nil {
+		s.newErrorResponse(c, http.StatusUnauthorized, err)
+		return
+	}
+
+	newAccessToken, newRefreshToken, err := s.svc.UserAuthorization.RefreshSession(refreshToken)
+	if err != nil {
+		s.newErrorResponse(c, http.StatusUnauthorized, err)
+		return
+	}
+
+	accessTokenClaims, err := s.svc.UserAuthorization.GetAccessTokenClaims(newAccessToken)
+	if err != nil {
+		s.newErrorResponse(c, http.StatusUnauthorized, err)
+		return
+	}
+
+	s.setTokensCookies(c, newAccessToken, newRefreshToken)
+	c.Set(ctxUserID, accessTokenClaims.Subject)
 }
 
 func setHandlerNameToLogEntry(c *gin.Context, handlerName string) {
-	logEntryValue, _ := c.Get(keyLogEntry)
+	logEntryValue, _ := c.Get(ctxLogEntry)
 
 	logEntry := logEntryValue.(*logrus.Entry).WithField("method", handlerName)
-	c.Set(keyLogEntry, logEntry)
+	c.Set(ctxLogEntry, logEntry)
 }
 
 func getLogEntry(c *gin.Context) *logrus.Entry {
-	logEntryValue, _ := c.Get(keyLogEntry)
+	logEntryValue, _ := c.Get(ctxLogEntry)
 
 	return logEntryValue.(*logrus.Entry)
 }
