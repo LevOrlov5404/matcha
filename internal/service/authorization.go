@@ -153,11 +153,6 @@ func validateToken(token string, signingKey []byte) (*jwt.StandardClaims, error)
 		return nil, errors.Wrap(err, "not valid token")
 	}
 
-	// check accessToken has not expired
-	if claims.ExpiresAt < time.Now().Unix() {
-		return nil, errors.New("expired accessToken")
-	}
-
 	return claims, nil
 }
 
@@ -167,7 +162,7 @@ func getTokenClaims(tokenString string, signingKey []byte) (*jwt.StandardClaims,
 			return nil, errors.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
-		return []byte(signingKey), nil
+		return signingKey, nil
 	})
 	if err != nil {
 		return nil, err

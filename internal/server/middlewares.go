@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -22,48 +23,82 @@ func (s *Server) InitMiddleware(c *gin.Context) {
 }
 
 func (s *Server) UserAuthorizationMiddleware(c *gin.Context) {
+	err := s.validateTokenCookieAndRefreshIfNeeded(c)
+	if err == nil {
+		return
+	}
+	getLogEntry(c).Debug(err)
+
+	if err := s.validateTokenHeader(c); err != nil {
+		s.newErrorResponse(c, http.StatusUnauthorized, err)
+		return
+	}
+}
+
+// validateTokenCookieAndRefreshIfNeeded gets accessToken from cookie and validate it.
+// on success it puts accessToken data to ctx and returns nil.
+// else it tries to refresh session by refresh token from cookie:
+// - on success puts accessToken data to ctx and returns nil
+// - on failure returns error.
+func (s *Server) validateTokenCookieAndRefreshIfNeeded(c *gin.Context) error {
 	accessToken, err := s.Cookie(c, accessTokenCookieName)
 	if err != nil {
 		getLogEntry(c).Debug(err)
-		s.refreshSessionByRefreshTokenCookie(c)
-		return
+		return s.refreshSessionByRefreshTokenCookie(c)
 	}
 
 	accessTokenClaims, err := s.svc.UserAuthorization.ValidateAccessToken(accessToken)
 	if err != nil {
-		if !errors.Is(err, service.ErrNotActiveAccessToken) {
-			s.newErrorResponse(c, http.StatusUnauthorized, err)
-			return
+		if !strings.Contains(err.Error(), "token is expired by") &&
+			!errors.Is(err, service.ErrNotActiveAccessToken) {
+			return err
 		}
 
-		s.refreshSessionByRefreshTokenCookie(c)
-		return
+		return s.refreshSessionByRefreshTokenCookie(c)
 	}
 
 	c.Set(ctxUserID, accessTokenClaims.Subject)
+	return nil
 }
 
-func (s *Server) refreshSessionByRefreshTokenCookie(c *gin.Context) {
+func (s *Server) refreshSessionByRefreshTokenCookie(c *gin.Context) error {
 	refreshToken, err := s.Cookie(c, refreshTokenCookieName)
 	if err != nil {
-		s.newErrorResponse(c, http.StatusUnauthorized, err)
-		return
+		return err
 	}
 
 	newAccessToken, newRefreshToken, err := s.svc.UserAuthorization.RefreshSession(refreshToken)
 	if err != nil {
-		s.newErrorResponse(c, http.StatusUnauthorized, err)
-		return
+		return err
 	}
 
 	accessTokenClaims, err := s.svc.UserAuthorization.GetAccessTokenClaims(newAccessToken)
 	if err != nil {
-		s.newErrorResponse(c, http.StatusUnauthorized, err)
-		return
+		return err
 	}
 
 	s.setTokensCookies(c, newAccessToken, newRefreshToken)
 	c.Set(ctxUserID, accessTokenClaims.Subject)
+	return nil
+}
+
+// validateTokenHeader gets accessToken from header and validate it.
+// on success it puts accessToken data to ctx and returns nil. else it returns error.
+func (s *Server) validateTokenHeader(c *gin.Context) error {
+	header := c.GetHeader("Authorization")
+	headerParts := strings.Split(header, " ")
+	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+		return errors.New("invalid auth header")
+	}
+
+	accessToken := headerParts[1]
+	accessTokenClaims, err := s.svc.UserAuthorization.ValidateAccessToken(accessToken)
+	if err != nil {
+		return err
+	}
+
+	c.Set(ctxUserID, accessTokenClaims.Subject)
+	return nil
 }
 
 func setHandlerNameToLogEntry(c *gin.Context, handlerName string) {
