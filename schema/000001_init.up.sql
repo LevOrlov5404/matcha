@@ -22,16 +22,22 @@ CREATE TABLE users
     sexual_preferences INTEGER       NOT NULL DEFAULT 0,
     biography          VARCHAR(1000) NOT NULL DEFAULT '',
     tags               TEXT[]        NOT NULL DEFAULT ARRAY []::TEXT[],
-    avatar_path         TEXT          NOT NULL DEFAULT '',
-    pictures_paths       TEXT[]        NOT NULL DEFAULT ARRAY []::TEXT[],
+    avatar_path        TEXT          NOT NULL DEFAULT '',
     likes_num          INTEGER       NOT NULL DEFAULT 0,
     views_num          INTEGER       NOT NULL DEFAULT 0,
     gps_position       TEXT          NOT NULL DEFAULT ''
 );
-
 CREATE TRIGGER set_timestamp
     BEFORE UPDATE ON users
     FOR EACH ROW
     EXECUTE PROCEDURE trigger_set_timestamp();
-
 CREATE INDEX idx_users_tags ON users USING GIN (tags);
+
+CREATE TABLE users_pictures
+(
+    uuid         UUID PRIMARY KEY,
+    user_id      BIGSERIAL REFERENCES users (id) ON DELETE CASCADE NOT NULL,
+    picture_path TEXT                                              NOT NULL DEFAULT '',
+    created_at   TIMESTAMPTZ                                       NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_users_pictures_user_id ON users_pictures (user_id);

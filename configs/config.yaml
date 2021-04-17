@@ -35,6 +35,6 @@ minio:
 
 filePathTemplates:
   userAvatar: "users/{{ .UserID }}/avatar"
-  userPicture: "users/{{ .UserID }}/pictures/{{ .Num }}"
+  userPicture: "users/{{ .UserID }}/pictures/{{ .UUID }}"
 
 maxUserPicturesNum: 4

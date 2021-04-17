@@ -5,6 +5,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/l-orlov/matcha/internal/config"
 	"github.com/l-orlov/matcha/internal/models"
@@ -28,7 +29,12 @@ type (
 		GetUserProfileByID(ctx context.Context, id uint64) (*models.UserProfile, error)
 		UpdateUserProfile(ctx context.Context, user models.UserProfile) error
 		UpdateUserAvatarPath(ctx context.Context, userID uint64, avatarPath string) error
-		UpdateUserPicturesPaths(ctx context.Context, userID uint64, picturesPaths []string) error
+	}
+	UserPictures interface {
+		CreateUserPicture(ctx context.Context, picture models.UserPicture) error
+		GetUserPictureByUUID(ctx context.Context, uuid uuid.UUID) (*models.UserPicture, error)
+		GetUserPicturesByUserID(ctx context.Context, userID uint64) ([]models.UserPicture, error)
+		DeleteUserPicture(ctx context.Context, uuid uuid.UUID) error
 	}
 	SessionCache interface {
 		PutSessionAndAccessToken(session models.Session, refreshToken string) error
@@ -52,10 +58,11 @@ type (
 	Storage interface {
 		PutFile(ctx context.Context, bucketName, objectName, contentType string, reader io.Reader) error
 		GetFileURL(ctx context.Context, bucket, objectName string, expires time.Duration) (url string, err error)
-		// DeleteFile() error
+		DeleteFile(ctx context.Context, bucket, objectName string) error
 	}
 	Repository struct {
 		User
+		UserPictures
 		SessionCache
 		VerificationCache
 		Storage
@@ -65,7 +72,8 @@ type (
 func NewRepository(
 	cfg *config.Config, log *logrus.Logger, db *sqlx.DB,
 ) (*Repository, error) {
-	userRepo := userpostgres.New(db, cfg.PostgresDB.Timeout.Duration())
+	userRepo := userpostgres.NewUserPostgres(db, cfg.PostgresDB.Timeout.Duration())
+	userPicturesRepo := userpostgres.NewUserPicturesPostgres(db, cfg.PostgresDB.Timeout.Duration())
 
 	cacheLogEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "cache-redis"})
 	cacheOptions := cacheredis.Options{
@@ -91,6 +99,7 @@ func NewRepository(
 
 	return &Repository{
 		User:              userRepo,
+		UserPictures:      userPicturesRepo,
 		SessionCache:      cache,
 		VerificationCache: cache,
 		Storage:           storage,

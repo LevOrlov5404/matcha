@@ -3,7 +3,6 @@ package user_postgres
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	ierrors "github.com/l-orlov/matcha/internal/errors"
 	"github.com/l-orlov/matcha/internal/models"
 	"github.com/lib/pq"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -22,7 +22,7 @@ type UserPostgres struct {
 	dbTimeout time.Duration
 }
 
-func New(db *sqlx.DB, dbTimeout time.Duration) *UserPostgres {
+func NewUserPostgres(db *sqlx.DB, dbTimeout time.Duration) *UserPostgres {
 	return &UserPostgres{
 		db:        db,
 		dbTimeout: dbTimeout,
@@ -32,13 +32,13 @@ func New(db *sqlx.DB, dbTimeout time.Duration) *UserPostgres {
 func (r *UserPostgres) CreateUser(ctx context.Context, user models.UserToCreate) (uint64, error) {
 	query := fmt.Sprintf(`
 INSERT INTO %s (email, username, first_name, last_name, password)
-values ($1, $2, $3, $4, $5) RETURNING id`, usersTable)
+VALUES ($1, $2, $3, $4, $5) RETURNING id`, usersTable)
 
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
 
 	row := r.db.QueryRowContext(dbCtx, query,
-		user.Email, user.Username, user.FirstName, user.LastName, user.Password)
+		&user.Email, &user.Username, &user.FirstName, &user.LastName, &user.Password)
 	if err := row.Err(); err != nil {
 		return 0, getDBError(err)
 	}
@@ -59,7 +59,7 @@ SELECT id, email, username, first_name, last_name, password FROM %s WHERE userna
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
 
-	if err := r.db.GetContext(dbCtx, &user, query, username); err != nil {
+	if err := r.db.GetContext(dbCtx, &user, query, &username); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
@@ -78,7 +78,7 @@ SELECT id, email, username, first_name, last_name, password FROM %s WHERE email=
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
 
-	if err := r.db.GetContext(dbCtx, &user, query, email); err != nil {
+	if err := r.db.GetContext(dbCtx, &user, query, &email); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
@@ -97,7 +97,7 @@ SELECT id, email, username, first_name, last_name, password, is_email_confirmed 
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
 
-	if err := r.db.GetContext(dbCtx, &user, query, id); err != nil {
+	if err := r.db.GetContext(dbCtx, &user, query, &id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
@@ -115,7 +115,7 @@ UPDATE %s SET username = $1, first_name = $2, last_name = $3 WHERE id = $4`, use
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
 
-	_, err := r.db.ExecContext(dbCtx, query, user.Username, user.FirstName, user.LastName, user.ID)
+	_, err := r.db.ExecContext(dbCtx, query, &user.Username, &user.FirstName, &user.LastName, &user.ID)
 	if err != nil {
 		return getDBError(err)
 	}
@@ -129,7 +129,7 @@ func (r *UserPostgres) UpdateUserPassword(ctx context.Context, userID uint64, pa
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
 
-	if _, err := r.db.ExecContext(dbCtx, query, password, userID); err != nil {
+	if _, err := r.db.ExecContext(dbCtx, query, &password, &userID); err != nil {
 		return getDBError(err)
 	}
 
@@ -155,7 +155,7 @@ func (r *UserPostgres) DeleteUser(ctx context.Context, id uint64) error {
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
 
-	if _, err := r.db.ExecContext(dbCtx, query, id); err != nil {
+	if _, err := r.db.ExecContext(dbCtx, query, &id); err != nil {
 		return err
 	}
 
@@ -168,7 +168,7 @@ func (r *UserPostgres) ConfirmEmail(ctx context.Context, id uint64) error {
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
 
-	if _, err := r.db.ExecContext(dbCtx, query, id); err != nil {
+	if _, err := r.db.ExecContext(dbCtx, query, &id); err != nil {
 		return getDBError(err)
 	}
 
@@ -178,23 +178,22 @@ func (r *UserPostgres) ConfirmEmail(ctx context.Context, id uint64) error {
 func (r *UserPostgres) GetUserProfileByID(ctx context.Context, id uint64) (*models.UserProfile, error) {
 	query := fmt.Sprintf(`
 SELECT id, email, username, first_name, last_name, is_email_confirmed,
-gender, sexual_preferences, biography, tags, avatar_path, pictures_paths,
-likes_num, views_num, gps_position
+gender, sexual_preferences, biography, tags, avatar_path, likes_num, views_num, gps_position
 FROM %s WHERE id=$1`, usersTable)
 
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
 
-	row := r.db.QueryRowContext(dbCtx, query, id)
+	row := r.db.QueryRowContext(dbCtx, query, &id)
 	if err := row.Err(); err != nil {
 		return nil, err
 	}
 
 	var user models.UserProfile
-	err := row.Scan(&user.ID, &user.Email, &user.Username, &user.FirstName,
-		&user.LastName, &user.IsEmailConfirmed, &user.Gender, &user.SexualPreferences,
-		&user.Biography, pq.Array(&user.Tags), &user.AvatarPath, pq.Array(&user.PicturesPath),
-		&user.LikesNum, &user.ViewsNum, &user.GPSPosition)
+	err := row.Scan(&user.ID, &user.Email, &user.Username, &user.FirstName, &user.LastName,
+		&user.IsEmailConfirmed, &user.Gender, &user.SexualPreferences, &user.Biography,
+		pq.Array(&user.Tags), &user.AvatarPath, &user.LikesNum, &user.ViewsNum, &user.GPSPosition,
+	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -216,9 +215,9 @@ WHERE id = $11`, usersTable)
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
 
-	_, err := r.db.ExecContext(dbCtx, query, user.Username, user.FirstName, user.LastName,
-		user.Gender, user.SexualPreferences, user.Biography, pq.Array(&user.Tags),
-		user.LikesNum, user.ViewsNum, user.GPSPosition, user.ID)
+	_, err := r.db.ExecContext(dbCtx, query, &user.Username, &user.FirstName, &user.LastName,
+		&user.Gender, &user.SexualPreferences, &user.Biography, pq.Array(&user.Tags),
+		&user.LikesNum, &user.ViewsNum, &user.GPSPosition, &user.ID)
 	if err != nil {
 		return getDBError(err)
 	}
@@ -232,21 +231,7 @@ func (r *UserPostgres) UpdateUserAvatarPath(ctx context.Context, userID uint64, 
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
 
-	_, err := r.db.ExecContext(dbCtx, query, avatarPath, userID)
-	if err != nil {
-		return getDBError(err)
-	}
-
-	return nil
-}
-
-func (r *UserPostgres) UpdateUserPicturesPaths(ctx context.Context, userID uint64, picturesPaths []string) error {
-	query := fmt.Sprintf(`UPDATE %s SET pictures_paths = $1 WHERE id = $2`, usersTable)
-
-	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
-	defer cancel()
-
-	_, err := r.db.ExecContext(dbCtx, query, pq.Array(&picturesPaths), userID)
+	_, err := r.db.ExecContext(dbCtx, query, &avatarPath, &userID)
 	if err != nil {
 		return getDBError(err)
 	}

@@ -82,14 +82,17 @@ func (s *Server) InitRoutes() *gin.Engine {
 			users.PUT("/", s.UpdateUser)
 			users.PUT("/set-password", s.SetUserPassword)
 			users.PUT("/change-password", s.ChangeUserPassword)
-			users.DELETE("/:id", s.DeleteUser)
+			users.DELETE("/by-id/:id", s.DeleteUser)
 			users.GET("/profile/by-id/:id", s.GetUserProfileByID)
 			users.PUT("/profile", s.UpdateUserProfile)
 
-			usersPictures := users.Group("/:id/pictures")
+			usersPictures := users.Group("/pictures")
 			{
 				usersPictures.POST("/avatar", s.UploadUserAvatar)
+				usersPictures.DELETE("/avatar", s.DeleteUserAvatar)
 				usersPictures.POST("/", s.UploadUserPicture)
+				usersPictures.GET("/", s.GetUserPictures)
+				usersPictures.DELETE("/", s.GetUserPictures)
 			}
 		}
 	}

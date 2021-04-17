@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/google/uuid"
 	"github.com/l-orlov/matcha/internal/config"
 	"github.com/l-orlov/matcha/internal/models"
 	"github.com/l-orlov/matcha/internal/repository"
@@ -50,7 +51,10 @@ type (
 		GetUserProfileByID(ctx context.Context, id uint64) (*models.UserProfile, error)
 		UpdateUserProfile(ctx context.Context, user models.UserProfile) error
 		UploadUserAvatar(ctx context.Context, userID uint64, file io.ReadSeeker) error
+		DeleteUserAvatar(ctx context.Context, userID uint64) error
 		UploadUserPicture(ctx context.Context, userID uint64, file io.ReadSeeker) error
+		GetUserPicturesByUserID(ctx context.Context, userID uint64) ([]models.UserPicture, error)
+		DeleteUserPicture(ctx context.Context, uuid uuid.UUID) error
 	}
 	Service struct {
 		User

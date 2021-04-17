@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	ierrors "github.com/l-orlov/matcha/internal/errors"
 	"github.com/l-orlov/matcha/internal/models"
 )
@@ -54,11 +55,9 @@ func (s *Server) UpdateUserProfile(c *gin.Context) {
 func (s *Server) UploadUserAvatar(c *gin.Context) {
 	setHandlerNameToLogEntry(c, "UploadUserAvatar")
 
-	userID, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		s.newErrorResponse(
-			c, http.StatusBadRequest, ierrors.NewBusiness(ErrNotValidIDParameter, ""),
-		)
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
+		s.newErrorResponse(c, http.StatusInternalServerError, ErrNotValidIDParameter)
 		return
 	}
 
@@ -74,8 +73,24 @@ func (s *Server) UploadUserAvatar(c *gin.Context) {
 		return
 	}
 
-	err = s.svc.UserProfile.UploadUserAvatar(c, userID, file)
-	if err != nil {
+	if err = s.svc.UserProfile.UploadUserAvatar(c, userID, file); err != nil {
+		s.newErrorResponse(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (s *Server) DeleteUserAvatar(c *gin.Context) {
+	setHandlerNameToLogEntry(c, "DeleteUserAvatar")
+
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
+		s.newErrorResponse(c, http.StatusInternalServerError, ErrNotValidIDParameter)
+		return
+	}
+
+	if err := s.svc.UserProfile.DeleteUserAvatar(c, userID); err != nil {
 		s.newErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -86,11 +101,9 @@ func (s *Server) UploadUserAvatar(c *gin.Context) {
 func (s *Server) UploadUserPicture(c *gin.Context) {
 	setHandlerNameToLogEntry(c, "UploadUserPicture")
 
-	userID, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		s.newErrorResponse(
-			c, http.StatusBadRequest, ierrors.NewBusiness(ErrNotValidIDParameter, ""),
-		)
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
+		s.newErrorResponse(c, http.StatusInternalServerError, ErrNotValidIDParameter)
 		return
 	}
 
@@ -106,11 +119,70 @@ func (s *Server) UploadUserPicture(c *gin.Context) {
 		return
 	}
 
-	err = s.svc.UserProfile.UploadUserPicture(c, userID, file)
-	if err != nil {
+	if err = s.svc.UserProfile.UploadUserPicture(c, userID, file); err != nil {
 		s.newErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (s *Server) GetUserPictures(c *gin.Context) {
+	setHandlerNameToLogEntry(c, "GetUserPictures")
+
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
+		s.newErrorResponse(c, http.StatusInternalServerError, ErrNotValidIDParameter)
+		return
+	}
+
+	users, err := s.svc.UserProfile.GetUserPicturesByUserID(c, userID)
+	if err != nil {
+		s.newErrorResponse(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	if users == nil {
+		c.JSON(http.StatusOK, []struct{}{})
+		return
+	}
+
+	c.JSON(http.StatusOK, users)
+}
+
+func (s *Server) DeleteUserPicture(c *gin.Context) {
+	setHandlerNameToLogEntry(c, "DeleteUserPicture")
+
+	pictureUUIDStr := c.Query("uuid")
+	if pictureUUIDStr == "" {
+		s.newErrorResponse(c, http.StatusBadRequest, ErrNotValidUUIDParameter)
+		return
+	}
+
+	pictureUUID, err := uuid.Parse(pictureUUIDStr)
+	if err != nil {
+		s.newErrorResponse(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	if err := s.svc.UserProfile.DeleteUserPicture(c, pictureUUID); err != nil {
+		s.newErrorResponse(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func getUserIDFromContext(c *gin.Context) (uint64, bool) {
+	userIDParam, ok := c.Get(ctxUserID)
+	if !ok {
+		return 0, false
+	}
+
+	userID, ok := userIDParam.(uint64)
+	if !ok {
+		return 0, false
+	}
+
+	return userID, true
 }

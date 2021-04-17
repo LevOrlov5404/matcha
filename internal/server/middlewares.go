@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -59,8 +60,7 @@ func (s *Server) validateTokenCookieAndRefreshIfNeeded(c *gin.Context) error {
 		return s.refreshSessionByRefreshTokenCookie(c)
 	}
 
-	c.Set(ctxUserID, accessTokenClaims.Subject)
-	return nil
+	return setUserIDForContext(c, accessTokenClaims.Subject)
 }
 
 func (s *Server) refreshSessionByRefreshTokenCookie(c *gin.Context) error {
@@ -80,8 +80,8 @@ func (s *Server) refreshSessionByRefreshTokenCookie(c *gin.Context) error {
 	}
 
 	s.setTokensCookies(c, newAccessToken, newRefreshToken)
-	c.Set(ctxUserID, accessTokenClaims.Subject)
-	return nil
+
+	return setUserIDForContext(c, accessTokenClaims.Subject)
 }
 
 // validateTokenHeader gets accessToken from header and validate it.
@@ -99,8 +99,7 @@ func (s *Server) validateTokenHeader(c *gin.Context) error {
 		return err
 	}
 
-	c.Set(ctxUserID, accessTokenClaims.Subject)
-	return nil
+	return setUserIDForContext(c, accessTokenClaims.Subject)
 }
 
 func setHandlerNameToLogEntry(c *gin.Context, handlerName string) {
@@ -114,4 +113,15 @@ func getLogEntry(c *gin.Context) *logrus.Entry {
 	logEntryValue, _ := c.Get(ctxLogEntry)
 
 	return logEntryValue.(*logrus.Entry)
+}
+
+func setUserIDForContext(c *gin.Context, userIDStr string) error {
+	userID, err := strconv.ParseUint(userIDStr, 10, 64)
+	if err != nil {
+		return err
+	}
+
+	c.Set(ctxUserID, userID)
+
+	return nil
 }
