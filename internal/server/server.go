@@ -92,7 +92,7 @@ func (s *Server) InitRoutes() *gin.Engine {
 				usersPictures.DELETE("/avatar", s.DeleteUserAvatar)
 				usersPictures.POST("/", s.UploadUserPicture)
 				usersPictures.GET("/", s.GetUserPictures)
-				usersPictures.DELETE("/", s.GetUserPictures)
+				usersPictures.DELETE("/", s.DeleteUserPicture)
 			}
 		}
 	}
