@@ -28,3 +28,13 @@ mailer:
   timeout: 3s
   msgToSendChanSize: 10
   workersNum: 1
+
+minio:
+  useSSL: false
+  timeout: 3s
+
+filePathTemplates:
+  userAvatar: "users/{{ .UserID }}/avatar"
+  userPicture: "users/{{ .UserID }}/pictures/{{ .Num }}"
+
+maxUserPicturesNum: 4

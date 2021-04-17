@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"io"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/l-orlov/matcha/internal/config"
@@ -24,8 +25,6 @@ type (
 		GetAllUsers(ctx context.Context) ([]models.User, error)
 		DeleteUser(ctx context.Context, id uint64) error
 		ConfirmEmail(ctx context.Context, id uint64) error
-		GetUserProfileByID(ctx context.Context, id uint64) (*models.UserProfile, error)
-		UpdateUserProfile(ctx context.Context, user models.UserProfile) error
 	}
 	UserAuthentication interface {
 		AuthenticateUserByUsername(ctx context.Context, username, password, fingerprint string) (userID uint64, err error)
@@ -47,12 +46,19 @@ type (
 		SendEmailConfirm(toEmail, token string)
 		SendResetPasswordConfirm(toEmail, token string)
 	}
+	UserProfile interface {
+		GetUserProfileByID(ctx context.Context, id uint64) (*models.UserProfile, error)
+		UpdateUserProfile(ctx context.Context, user models.UserProfile) error
+		UploadUserAvatar(ctx context.Context, userID uint64, file io.ReadSeeker) error
+		UploadUserPicture(ctx context.Context, userID uint64, file io.ReadSeeker) error
+	}
 	Service struct {
 		User
 		UserAuthentication
 		UserAuthorization
 		Verification
 		Mailer
+		UserProfile
 	}
 )
 
@@ -61,8 +67,9 @@ func NewService(
 	repo *repository.Repository, generator RandomTokenGenerator,
 	mailer Mailer,
 ) *Service {
-	authenticationLogEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "authenticationService"})
-	verificationLogEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "verificationService"})
+	authenticationLogEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "authentication-svc"})
+	verificationLogEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "verification-svc"})
+	profileLogEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "user-profile-svc"})
 
 	return &Service{
 		User:               NewUserService(repo.User, cfg.JWT.AccessTokenLifetime.Duration()),
@@ -70,5 +77,6 @@ func NewService(
 		UserAuthorization:  NewAuthorizationService(cfg, repo),
 		Verification:       NewVerificationService(verificationLogEntry, repo.VerificationCache, generator),
 		Mailer:             mailer,
+		UserProfile:        NewUserProfileService(profileLogEntry, cfg.MaxUserPicturesNum, cfg.FilePathTemplates, repo),
 	}
 }

@@ -2,12 +2,15 @@ package repository
 
 import (
 	"context"
+	"io"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/l-orlov/matcha/internal/config"
 	"github.com/l-orlov/matcha/internal/models"
-	cacheRedis "github.com/l-orlov/matcha/internal/repository/cache-redis"
-	userPostgres "github.com/l-orlov/matcha/internal/repository/user-postgres"
+	cacheredis "github.com/l-orlov/matcha/internal/repository/cache-redis"
+	storageminio "github.com/l-orlov/matcha/internal/repository/storage-minio"
+	userpostgres "github.com/l-orlov/matcha/internal/repository/user-postgres"
 	"github.com/sirupsen/logrus"
 )
 
@@ -24,6 +27,8 @@ type (
 		ConfirmEmail(ctx context.Context, id uint64) error
 		GetUserProfileByID(ctx context.Context, id uint64) (*models.UserProfile, error)
 		UpdateUserProfile(ctx context.Context, user models.UserProfile) error
+		UpdateUserAvatarPath(ctx context.Context, userID uint64, avatarPath string) error
+		UpdateUserPicturesPaths(ctx context.Context, userID uint64, picturesPaths []string) error
 	}
 	SessionCache interface {
 		PutSessionAndAccessToken(session models.Session, refreshToken string) error
@@ -44,31 +49,50 @@ type (
 		GetPasswordResetConfirmTokenData(token string) (userID uint64, err error)
 		DeletePasswordResetConfirmToken(token string) error
 	}
+	Storage interface {
+		PutFile(ctx context.Context, bucketName, objectName, contentType string, reader io.Reader) error
+		GetFileURL(ctx context.Context, bucket, objectName string, expires time.Duration) (url string, err error)
+		// DeleteFile() error
+	}
 	Repository struct {
 		User
 		SessionCache
 		VerificationCache
+		Storage
 	}
 )
 
 func NewRepository(
 	cfg *config.Config, log *logrus.Logger, db *sqlx.DB,
-) *Repository {
-	userRepo := userPostgres.NewUserPostgres(db, cfg.PostgresDB.Timeout.Duration())
+) (*Repository, error) {
+	userRepo := userpostgres.New(db, cfg.PostgresDB.Timeout.Duration())
 
-	cacheLogEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "cacheRedis"})
-	cacheOptions := cacheRedis.Options{
+	cacheLogEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "cache-redis"})
+	cacheOptions := cacheredis.Options{
 		AccessTokenLifetime:               int(cfg.JWT.AccessTokenLifetime.Duration().Seconds()),
 		RefreshTokenLifetime:              int(cfg.JWT.RefreshTokenLifetime.Duration().Seconds()),
 		UserBlockingLifetime:              int(cfg.UserBlocking.Lifetime.Duration().Seconds()),
 		EmailConfirmTokenLifetime:         int(cfg.Verification.EmailConfirmTokenLifetime.Duration().Seconds()),
 		PasswordResetConfirmTokenLifetime: int(cfg.Verification.PasswordResetConfirmTokenLifetime.Duration().Seconds()),
 	}
-	cache := cacheRedis.New(cfg.Redis, cacheLogEntry, cacheOptions)
+	cache := cacheredis.New(cfg.Redis, cacheLogEntry, cacheOptions)
+
+	storageEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "minio-storage"})
+	storage, err := storageminio.New(storageminio.Config{
+		Endpoint:  cfg.Minio.Endpoint.String(),
+		AccessKey: cfg.Minio.AccessKey,
+		SecretKey: cfg.Minio.SecretKey,
+		UseSSL:    cfg.Minio.UseSSL,
+		Timeout:   cfg.Minio.Timeout.Duration(),
+	}, storageEntry)
+	if err != nil {
+		return nil, err
+	}
 
 	return &Repository{
 		User:              userRepo,
 		SessionCache:      cache,
 		VerificationCache: cache,
-	}
+		Storage:           storage,
+	}, nil
 }

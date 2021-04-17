@@ -1,13 +1,13 @@
 package server
 
 import (
-	"errors"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/l-orlov/matcha/internal/service"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -15,6 +15,8 @@ const (
 	ctxUserID   = "userID"
 	ctxLogEntry = "log-entry"
 )
+
+var ErrNotValidAuthorizationHeader = errors.New("not valid Authorization header")
 
 func (s *Server) InitMiddleware(c *gin.Context) {
 	requestID := uuid.New().String()
@@ -88,7 +90,7 @@ func (s *Server) validateTokenHeader(c *gin.Context) error {
 	header := c.GetHeader("Authorization")
 	headerParts := strings.Split(header, " ")
 	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
-		return errors.New("invalid auth header")
+		return ErrNotValidAuthorizationHeader
 	}
 
 	accessToken := headerParts[1]

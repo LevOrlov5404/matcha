@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	iErrs "github.com/l-orlov/matcha/internal/errors"
+	ierrors "github.com/l-orlov/matcha/internal/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -16,7 +16,7 @@ type errorResponse struct {
 func (s *Server) newErrorResponse(c *gin.Context, statusCode int, err error) {
 	logEntry := getLogEntry(c)
 
-	if customErr, ok := err.(*iErrs.Error); ok {
+	if customErr, ok := err.(*ierrors.Error); ok {
 		handleCustomError(c, logEntry, customErr)
 		return
 	}
@@ -24,10 +24,10 @@ func (s *Server) newErrorResponse(c *gin.Context, statusCode int, err error) {
 	handleDefaultError(c, logEntry, err, statusCode)
 }
 
-func handleCustomError(c *gin.Context, logEntry *logrus.Entry, err *iErrs.Error) {
+func handleCustomError(c *gin.Context, logEntry *logrus.Entry, err *ierrors.Error) {
 	var statusCode int
 
-	if err.Level == iErrs.Business {
+	if err.Level == ierrors.Business {
 		logEntry.Debug(err)
 		statusCode = http.StatusBadRequest
 	} else {
@@ -47,10 +47,10 @@ func handleDefaultError(c *gin.Context, logEntry *logrus.Entry, err error, statu
 	}
 	if statusCode >= http.StatusBadRequest && statusCode < http.StatusInternalServerError {
 		logEntry.Debug(err)
-		errResp.Detail = iErrs.DetailBusiness
+		errResp.Detail = ierrors.DetailBusiness
 	} else {
 		logEntry.Error(err)
-		errResp.Detail = iErrs.DetailServer
+		errResp.Detail = ierrors.DetailServer
 	}
 
 	c.AbortWithStatusJSON(statusCode, errResp)

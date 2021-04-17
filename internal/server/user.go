@@ -5,9 +5,8 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	iErrs "github.com/l-orlov/matcha/internal/errors"
+	ierrors "github.com/l-orlov/matcha/internal/errors"
 	"github.com/l-orlov/matcha/internal/models"
-	"github.com/pkg/errors"
 )
 
 func (s *Server) CreateUser(c *gin.Context) {
@@ -45,7 +44,7 @@ func (s *Server) GetUserByID(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		s.newErrorResponse(
-			c, http.StatusBadRequest, iErrs.NewBusiness(errors.New("invalid id parameter"), ""),
+			c, http.StatusBadRequest, ierrors.NewBusiness(ErrNotValidIDParameter, ""),
 		)
 		return
 	}
@@ -140,54 +139,12 @@ func (s *Server) DeleteUser(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		s.newErrorResponse(
-			c, http.StatusBadRequest, iErrs.NewBusiness(errors.New("invalid id parameter"), ""),
+			c, http.StatusBadRequest, ierrors.NewBusiness(ErrNotValidIDParameter, ""),
 		)
 		return
 	}
 
 	if err := s.svc.User.DeleteUser(c, id); err != nil {
-		s.newErrorResponse(c, http.StatusInternalServerError, err)
-		return
-	}
-
-	c.Status(http.StatusOK)
-}
-
-func (s *Server) GetUserProfileByID(c *gin.Context) {
-	setHandlerNameToLogEntry(c, "GetUserProfileByID")
-
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		s.newErrorResponse(
-			c, http.StatusBadRequest, iErrs.NewBusiness(errors.New("invalid id parameter"), ""),
-		)
-		return
-	}
-
-	user, err := s.svc.User.GetUserProfileByID(c, id)
-	if err != nil {
-		s.newErrorResponse(c, http.StatusInternalServerError, err)
-		return
-	}
-
-	if user == nil {
-		c.Status(http.StatusNoContent)
-		return
-	}
-
-	c.JSON(http.StatusOK, user)
-}
-
-func (s *Server) UpdateUserProfile(c *gin.Context) {
-	setHandlerNameToLogEntry(c, "UpdateUserProfile")
-
-	var user models.UserProfile
-	if err := c.BindJSON(&user); err != nil {
-		s.newErrorResponse(c, http.StatusBadRequest, err)
-		return
-	}
-
-	if err := s.svc.User.UpdateUserProfile(c, user); err != nil {
 		s.newErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}

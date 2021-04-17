@@ -9,15 +9,18 @@ import (
 
 type (
 	Config struct {
-		Address      AddressConfig `yaml:"address"`
-		Logger       Logger        `yaml:"logger"`
-		PostgresDB   PostgresDB    `yaml:"postgresDB"`
-		Redis        Redis         `yaml:"redis"`
-		JWT          JWT           `yaml:"jwt"`
-		Cookie       Cookie        `yaml:"cookie"`
-		UserBlocking UserBlocking  `yaml:"userBlocking"`
-		Verification Verification  `yaml:"verification"`
-		Mailer       Mailer        `yaml:"mailer"`
+		Address            AddressConfig     `yaml:"address"`
+		Logger             Logger            `yaml:"logger"`
+		PostgresDB         PostgresDB        `yaml:"postgresDB"`
+		Redis              Redis             `yaml:"redis"`
+		JWT                JWT               `yaml:"jwt"`
+		Cookie             Cookie            `yaml:"cookie"`
+		UserBlocking       UserBlocking      `yaml:"userBlocking"`
+		Verification       Verification      `yaml:"verification"`
+		Mailer             Mailer            `yaml:"mailer"`
+		Minio              Minio             `yaml:"minio"`
+		FilePathTemplates  FilePathTemplates `yaml:"filePathTemplates"`
+		MaxUserPicturesNum int               `yaml:"maxUserPicturesNum"`
 	}
 	Logger struct {
 		Level  string `yaml:"level" env:"LOGGER_LEVEL,default=info"`
@@ -48,6 +51,7 @@ type (
 	Cookie struct {
 		HashKey  StdBase64 `yaml:"hashKey" env:"COOKIE_HASH_KEY,default=dGVzdA=="`
 		BlockKey StdBase64 `yaml:"blockKey" env:"COOKIE_BLOCK_KEY,default=dGVzdA=="`
+		Domain   string    `yaml:"domain" env:"COOKIE_DOMAIN"`
 	}
 	UserBlocking struct {
 		Lifetime  DurationConfig `yaml:"lifetime"`
@@ -64,6 +68,17 @@ type (
 		Timeout           DurationConfig `yaml:"timeout"`
 		MsgToSendChanSize int            `yaml:"msgToSendChanSize"`
 		WorkersNum        int            `yaml:"workersNum"`
+	}
+	Minio struct {
+		Endpoint  AddressConfig  `yaml:"endpoint" env:"MINIO_ENDPOINT,default=0.0.0.0:9000"`
+		AccessKey string         `yaml:"accessKey" env:"MINIO_ACCESS_KEY,default=minio"`
+		SecretKey string         `yaml:"secretKey" env:"MINIO_SECRET_KEY,default=minio123"`
+		UseSSL    bool           `yaml:"useSSL"`
+		Timeout   DurationConfig `yaml:"timeout"`
+	}
+	FilePathTemplates struct {
+		UserAvatar  string `yaml:"userAvatar"`
+		UserPicture string `yaml:"userPicture"`
 	}
 )
 

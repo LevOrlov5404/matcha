@@ -46,8 +46,8 @@ type (
 		SexualPreferences int      `json:"sexualPreferences"`
 		Biography         string   `json:"biography"`
 		Tags              []string `json:"tags"`
-		AvatarURL         string   `json:"avatarURL"`
-		PicturesURL       []string `json:"picturesURL"`
+		AvatarPath        string   `json:"avatarURL"`
+		PicturesPath      []string `json:"picturesURL"`
 		LikesNum          int      `json:"likesNum"`
 		ViewsNum          int      `json:"viewsNum"`
 		GPSPosition       string   `json:"gpsPosition"`

@@ -22,8 +22,8 @@ CREATE TABLE users
     sexual_preferences INTEGER       NOT NULL DEFAULT 0,
     biography          VARCHAR(1000) NOT NULL DEFAULT '',
     tags               TEXT[]        NOT NULL DEFAULT ARRAY []::TEXT[],
-    avatar_url         TEXT          NOT NULL DEFAULT '',
-    pictures_url       TEXT[]        NOT NULL DEFAULT ARRAY []::TEXT[],
+    avatar_path         TEXT          NOT NULL DEFAULT '',
+    pictures_paths       TEXT[]        NOT NULL DEFAULT ARRAY []::TEXT[],
     likes_num          INTEGER       NOT NULL DEFAULT 0,
     views_num          INTEGER       NOT NULL DEFAULT 0,
     gps_position       TEXT          NOT NULL DEFAULT ''

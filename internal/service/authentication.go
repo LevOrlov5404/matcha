@@ -4,12 +4,14 @@ import (
 	"context"
 
 	"github.com/l-orlov/matcha/internal/config"
-	iErrs "github.com/l-orlov/matcha/internal/errors"
+	ierrors "github.com/l-orlov/matcha/internal/errors"
 	"github.com/l-orlov/matcha/internal/models"
 	"github.com/l-orlov/matcha/internal/repository"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
+
+var ErrBlockedByLimit = errors.New("user is blocked due to exceeding the error limit")
 
 type (
 	AuthenticationService struct {
@@ -17,11 +19,6 @@ type (
 		log  *logrus.Entry
 		repo *repository.Repository
 	}
-)
-
-const (
-	ErrMsgWrongPassword  = "wrong password"
-	ErrMsgBlockedByLimit = "user is blocked due to exceeding the error limit"
 )
 
 func NewAuthenticationService(
@@ -47,7 +44,7 @@ func (s *AuthenticationService) AuthenticateUserByUsername(
 	}
 
 	if user == nil {
-		return 0, iErrs.NewBusiness(errors.New("user does not exist"), "")
+		return 0, ierrors.NewBusiness(ErrUserNotFound, "")
 	}
 
 	if err := s.checkUserPasswordHash(fingerprint, user.Password, password); err != nil {
@@ -68,7 +65,7 @@ func (s *AuthenticationService) checkUserBlocking(fingerprint string) error {
 	}
 
 	if count >= s.cfg.UserBlocking.MaxErrors {
-		return errors.New(ErrMsgBlockedByLimit)
+		return ErrBlockedByLimit
 	}
 
 	return nil
@@ -80,7 +77,7 @@ func (s *AuthenticationService) checkUserPasswordHash(fingerprint, hash, passwor
 			s.log.Errorf("err while AddUserBlocking: %v", err)
 		}
 
-		return errors.New(ErrMsgWrongPassword)
+		return ErrWrongPassword
 	}
 
 	return nil

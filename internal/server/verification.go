@@ -4,8 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	iErrs "github.com/l-orlov/matcha/internal/errors"
-	"github.com/pkg/errors"
+	ierrors "github.com/l-orlov/matcha/internal/errors"
 )
 
 func (s *Server) ConfirmEmail(c *gin.Context) {
@@ -14,7 +13,7 @@ func (s *Server) ConfirmEmail(c *gin.Context) {
 	token, ok := c.GetQuery("token")
 	if !ok || token == "" {
 		s.newErrorResponse(
-			c, http.StatusBadRequest, iErrs.NewBusiness(errors.New("empty token parameter"), ""),
+			c, http.StatusBadRequest, ierrors.NewBusiness(ErrEmptyTokenParameter, ""),
 		)
 		return
 	}
@@ -39,7 +38,7 @@ func (s *Server) ConfirmPasswordReset(c *gin.Context) {
 	token, ok := c.GetQuery("token")
 	if !ok || token == "" {
 		s.newErrorResponse(
-			c, http.StatusBadRequest, iErrs.NewBusiness(errors.New("empty token parameter"), ""),
+			c, http.StatusBadRequest, ierrors.NewBusiness(ErrEmptyTokenParameter, ""),
 		)
 		return
 	}

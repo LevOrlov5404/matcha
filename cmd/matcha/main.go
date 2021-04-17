@@ -11,7 +11,7 @@ import (
 
 	"github.com/l-orlov/matcha/internal/config"
 	"github.com/l-orlov/matcha/internal/repository"
-	userPostgres "github.com/l-orlov/matcha/internal/repository/user-postgres"
+	userpostgres "github.com/l-orlov/matcha/internal/repository/user-postgres"
 	"github.com/l-orlov/matcha/internal/server"
 	"github.com/l-orlov/matcha/internal/service"
 	"github.com/l-orlov/matcha/pkg/logger"
@@ -37,7 +37,7 @@ func main() {
 		log.Fatalf("failed to init logger: %v", err)
 	}
 
-	db, err := userPostgres.ConnectToDB(cfg)
+	db, err := userpostgres.ConnectToDB(cfg)
 	if err != nil {
 		lg.Fatalf("failed to connect to db: %v", err)
 	}
@@ -47,6 +47,11 @@ func main() {
 		}
 	}()
 
+	repo, err := repository.NewRepository(cfg, lg, db)
+	if err != nil {
+		log.Fatalf("failed to create repository: %v", err)
+	}
+
 	randomSymbolsGenerator, err := password.NewGenerator(&password.GeneratorInput{
 		LowerLetters: passwordAllowedLowerLetters,
 		UpperLetters: passwordAllowedUpperLetters,
@@ -55,8 +60,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create random symbols generator: %v", err)
 	}
-
-	repo := repository.NewRepository(cfg, lg, db)
 
 	mailerLogEntry := logrus.NewEntry(lg).WithFields(logrus.Fields{"source": "mailerService"})
 	mailer := service.NewMailerService(cfg.Mailer, mailerLogEntry)
@@ -74,7 +77,7 @@ func main() {
 	lg.Info("service started")
 
 	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 	<-quit
 
 	lg.Info("service shutting down")

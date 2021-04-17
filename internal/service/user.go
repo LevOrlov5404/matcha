@@ -2,12 +2,19 @@ package service
 
 import (
 	"context"
-	"errors"
 	"time"
 
-	iErrs "github.com/l-orlov/matcha/internal/errors"
+	ierrors "github.com/l-orlov/matcha/internal/errors"
 	"github.com/l-orlov/matcha/internal/models"
 	"github.com/l-orlov/matcha/internal/repository"
+	"github.com/pkg/errors"
+)
+
+var (
+	ErrUserNotFound    = errors.New("user not found")
+	ErrUsernameIsTaken = errors.New("username is already taken")
+	ErrEmailIsTaken    = errors.New("user with this email already exists")
+	ErrWrongPassword   = errors.New("wrong password")
 )
 
 type (
@@ -33,7 +40,7 @@ func (s *UserService) CreateUser(ctx context.Context, user models.UserToCreate) 
 	}
 
 	if existingUser != nil {
-		return 0, iErrs.NewBusiness(errors.New("username is already taken"), "")
+		return 0, ierrors.NewBusiness(ErrUsernameIsTaken, "")
 	}
 
 	existingUser, err = s.repo.GetUserByEmail(ctx, user.Email)
@@ -42,12 +49,12 @@ func (s *UserService) CreateUser(ctx context.Context, user models.UserToCreate) 
 	}
 
 	if existingUser != nil {
-		return 0, iErrs.NewBusiness(errors.New("user with this email already exists"), "")
+		return 0, ierrors.NewBusiness(ErrEmailIsTaken, "")
 	}
 
 	hashedPassword, err := models.HashPassword(user.Password)
 	if err != nil {
-		return 0, iErrs.New(err)
+		return 0, ierrors.New(err)
 	}
 
 	user.Password = hashedPassword
@@ -70,7 +77,7 @@ func (s *UserService) UpdateUser(ctx context.Context, user models.User) error {
 func (s *UserService) SetUserPassword(ctx context.Context, userID uint64, password string) error {
 	hashedPassword, err := models.HashPassword(password)
 	if err != nil {
-		return iErrs.New(err)
+		return ierrors.New(err)
 	}
 
 	return s.repo.UpdateUserPassword(ctx, userID, hashedPassword)
@@ -83,16 +90,16 @@ func (s *UserService) ChangeUserPassword(ctx context.Context, userID uint64, old
 	}
 
 	if user == nil {
-		return iErrs.NewBusiness(errors.New("user does not exist"), "")
+		return ierrors.NewBusiness(ErrUserNotFound, "")
 	}
 
 	if !models.CheckPasswordHash(user.Password, oldPassword) {
-		return iErrs.NewBusiness(errors.New("wrong password"), "")
+		return ierrors.NewBusiness(ErrWrongPassword, "")
 	}
 
 	hashedPassword, err := models.HashPassword(newPassword)
 	if err != nil {
-		return iErrs.New(err)
+		return ierrors.New(err)
 	}
 
 	return s.repo.UpdateUserPassword(ctx, userID, hashedPassword)
@@ -108,12 +115,4 @@ func (s *UserService) DeleteUser(ctx context.Context, id uint64) error {
 
 func (s *UserService) ConfirmEmail(ctx context.Context, id uint64) error {
 	return s.repo.ConfirmEmail(ctx, id)
-}
-
-func (s *UserService) GetUserProfileByID(ctx context.Context, id uint64) (*models.UserProfile, error) {
-	return s.repo.GetUserProfileByID(ctx, id)
-}
-
-func (s *UserService) UpdateUserProfile(ctx context.Context, user models.UserProfile) error {
-	return s.repo.UpdateUserProfile(ctx, user)
 }

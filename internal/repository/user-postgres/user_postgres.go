@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	iErrs "github.com/l-orlov/matcha/internal/errors"
+	ierrors "github.com/l-orlov/matcha/internal/errors"
 	"github.com/l-orlov/matcha/internal/models"
 	"github.com/lib/pq"
 )
@@ -22,7 +22,7 @@ type UserPostgres struct {
 	dbTimeout time.Duration
 }
 
-func NewUserPostgres(db *sqlx.DB, dbTimeout time.Duration) *UserPostgres {
+func New(db *sqlx.DB, dbTimeout time.Duration) *UserPostgres {
 	return &UserPostgres{
 		db:        db,
 		dbTimeout: dbTimeout,
@@ -178,7 +178,7 @@ func (r *UserPostgres) ConfirmEmail(ctx context.Context, id uint64) error {
 func (r *UserPostgres) GetUserProfileByID(ctx context.Context, id uint64) (*models.UserProfile, error) {
 	query := fmt.Sprintf(`
 SELECT id, email, username, first_name, last_name, is_email_confirmed,
-gender, sexual_preferences, biography, tags, avatar_url, pictures_url,
+gender, sexual_preferences, biography, tags, avatar_path, pictures_paths,
 likes_num, views_num, gps_position
 FROM %s WHERE id=$1`, usersTable)
 
@@ -187,18 +187,19 @@ FROM %s WHERE id=$1`, usersTable)
 
 	row := r.db.QueryRowContext(dbCtx, query, id)
 	if err := row.Err(); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-
 		return nil, err
 	}
 
 	var user models.UserProfile
-	if err := row.Scan(&user.ID, &user.Email, &user.Username, &user.FirstName,
+	err := row.Scan(&user.ID, &user.Email, &user.Username, &user.FirstName,
 		&user.LastName, &user.IsEmailConfirmed, &user.Gender, &user.SexualPreferences,
-		&user.Biography, pq.Array(&user.Tags), &user.AvatarURL, pq.Array(&user.PicturesURL),
-		&user.LikesNum, &user.ViewsNum, &user.GPSPosition); err != nil {
+		&user.Biography, pq.Array(&user.Tags), &user.AvatarPath, pq.Array(&user.PicturesPath),
+		&user.LikesNum, &user.ViewsNum, &user.GPSPosition)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+
 		return nil, err
 	}
 
@@ -209,16 +210,43 @@ func (r *UserPostgres) UpdateUserProfile(ctx context.Context, user models.UserPr
 	query := fmt.Sprintf(`
 UPDATE %s SET username = $1, first_name = $2, last_name = $3,
 gender = $4, sexual_preferences = $5, biography = $6, tags = $7,
-avatar_url = $8, pictures_url = $9, likes_num = $10, views_num = $11, gps_position = $12
-WHERE id = $13`, usersTable)
+likes_num = $8, views_num = $9, gps_position = $10
+WHERE id = $11`, usersTable)
 
 	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
 
 	_, err := r.db.ExecContext(dbCtx, query, user.Username, user.FirstName, user.LastName,
 		user.Gender, user.SexualPreferences, user.Biography, pq.Array(&user.Tags),
-		user.AvatarURL, pq.Array(&user.PicturesURL), user.LikesNum, user.ViewsNum,
-		user.GPSPosition, user.ID)
+		user.LikesNum, user.ViewsNum, user.GPSPosition, user.ID)
+	if err != nil {
+		return getDBError(err)
+	}
+
+	return nil
+}
+
+func (r *UserPostgres) UpdateUserAvatarPath(ctx context.Context, userID uint64, avatarPath string) error {
+	query := fmt.Sprintf(`UPDATE %s SET avatar_path = $1 WHERE id = $2`, usersTable)
+
+	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
+	defer cancel()
+
+	_, err := r.db.ExecContext(dbCtx, query, avatarPath, userID)
+	if err != nil {
+		return getDBError(err)
+	}
+
+	return nil
+}
+
+func (r *UserPostgres) UpdateUserPicturesPaths(ctx context.Context, userID uint64, picturesPaths []string) error {
+	query := fmt.Sprintf(`UPDATE %s SET pictures_paths = $1 WHERE id = $2`, usersTable)
+
+	dbCtx, cancel := context.WithTimeout(ctx, r.dbTimeout)
+	defer cancel()
+
+	_, err := r.db.ExecContext(dbCtx, query, pq.Array(&picturesPaths), userID)
 	if err != nil {
 		return getDBError(err)
 	}
@@ -229,10 +257,10 @@ WHERE id = $13`, usersTable)
 func getDBError(err error) error {
 	if err, ok := err.(*pq.Error); ok {
 		if err.Code.Class() < "50" { // business error
-			return iErrs.NewBusiness(err, err.Detail)
+			return ierrors.NewBusiness(err, err.Detail)
 		}
 
-		return iErrs.New(err)
+		return ierrors.New(err)
 	}
 
 	return err

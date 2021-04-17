@@ -11,7 +11,7 @@ services:
     image: postgres
     ports:
       - 54320:5432
-    restart: unless-stopped
+#    restart: unless-stopped
     volumes:
       - matcha-postgres:/var/lib/postgresql/data
 
@@ -20,9 +20,21 @@ services:
     image: redis
     ports:
       - 6379:6379
-    restart: unless-stopped
+#    restart: unless-stopped
     volumes:
       - matcha-redis:/data
+
+  minio:
+    container_name: matcha-minio
+    image: bitnami/minio:latest
+    ports:
+      - 9000:9000
+    environment:
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+#    restart: unless-stopped
+    volumes:
+      - matcha-minio:/data
 
   matcha-api:
     build: .
@@ -45,12 +57,14 @@ services:
       - EMAIL_PASSWORD=${EMAIL_PASSWORD}
     ports:
       - 8080:8080
-    restart: unless-stopped
+#    restart: unless-stopped
 
 volumes:
   matcha-postgres:
     driver: local
   matcha-redis:
+    driver: local
+  matcha-minio:
     driver: local
 
 networks:

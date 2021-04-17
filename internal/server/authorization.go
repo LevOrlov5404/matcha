@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	iErrs "github.com/l-orlov/matcha/internal/errors"
+	ierrors "github.com/l-orlov/matcha/internal/errors"
 	"github.com/l-orlov/matcha/internal/models"
 	"github.com/pkg/errors"
 )
@@ -114,7 +114,7 @@ func (s *Server) ResetPassword(c *gin.Context) {
 	email, ok := c.GetQuery("email")
 	if !ok || email == "" {
 		s.newErrorResponse(
-			c, http.StatusBadRequest, iErrs.NewBusiness(errors.New("empty email parameter"), ""),
+			c, http.StatusBadRequest, ierrors.NewBusiness(ErrEmptyEmailParameter, ""),
 		)
 		return
 	}
@@ -127,7 +127,7 @@ func (s *Server) ResetPassword(c *gin.Context) {
 
 	if user == nil {
 		s.newErrorResponse(
-			c, http.StatusBadRequest, iErrs.NewBusiness(errors.New("there is no user with this email"), ""),
+			c, http.StatusBadRequest, ierrors.NewBusiness(ErrUserNotFound, ""),
 		)
 		return
 	}
@@ -148,7 +148,7 @@ func (s *Server) setTokensCookies(c *gin.Context, accessToken, refreshToken stri
 	if encodedAccessToken, err := s.options.SecureCookie.Encode(accessTokenCookieName, accessToken); err == nil {
 		c.SetCookie(
 			accessTokenCookieName, encodedAccessToken, s.options.AccessTokenCookieMaxAge,
-			"/", "", false, true,
+			"/", s.cfg.Cookie.Domain, false, true,
 		)
 	} else {
 		getLogEntry(c).Error(err)
@@ -157,7 +157,7 @@ func (s *Server) setTokensCookies(c *gin.Context, accessToken, refreshToken stri
 	if encodedRefreshToken, err := s.options.SecureCookie.Encode(refreshTokenCookieName, refreshToken); err == nil {
 		c.SetCookie(
 			refreshTokenCookieName, encodedRefreshToken, s.options.RefreshTokenCookieMaxAge,
-			"/", "", false, true,
+			"/", s.cfg.Cookie.Domain, false, true,
 		)
 	} else {
 		getLogEntry(c).Error(err)
@@ -167,7 +167,7 @@ func (s *Server) setTokensCookies(c *gin.Context, accessToken, refreshToken stri
 func (s *Server) Cookie(c *gin.Context, name string) (string, error) {
 	value, err := c.Cookie(name)
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "failed to get cookie %s", name)
 	}
 
 	var decodedValue string
