@@ -38,10 +38,10 @@ MINIO_SECRET_KEY=minio123
 <a name="deployment"></a>
 ## Развертывание
 1. Для того, чтобы развернуть сервис в docker:  
-```docker compose up -d```  
+```docker-compose up -d```  
 
     Опустить контейнеры:  
-```docker compose down```  
+```docker-compose down```  
 2. Чтобы выполнить начальную миграцию для базы данных, нужно установить <a href="https://github.com/golang-migrate/migrate">эту утилиту</a> и выполнить команду:  
 ```migrate -path ./schema -database 'postgres://matcha:123@localhost:54320/matcha?sslmode=disable' up```  
 
