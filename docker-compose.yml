@@ -14,6 +14,8 @@ services:
 #    restart: unless-stopped
     volumes:
       - matcha-postgres:/var/lib/postgresql/data
+    networks:
+      - matcha
 
   redis:
     container_name: matcha-redis
@@ -23,6 +25,8 @@ services:
 #    restart: unless-stopped
     volumes:
       - matcha-redis:/data
+    networks:
+      - matcha
 
   minio:
     container_name: matcha-minio
@@ -35,6 +39,8 @@ services:
 #    restart: unless-stopped
     volumes:
       - matcha-minio:/data
+    networks:
+      - matcha
 
   matcha-api:
     build: .
@@ -55,9 +61,14 @@ services:
       - EMAIL_SERVER_ADDRESS=${EMAIL_SERVER_ADDRESS}
       - EMAIL_USERNAME=${EMAIL_USERNAME}
       - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
     ports:
       - 8080:8080
 #    restart: unless-stopped
+    networks:
+      - matcha
 
 volumes:
   matcha-postgres:
@@ -68,6 +79,6 @@ volumes:
     driver: local
 
 networks:
-  default:
-    external:
-      name: matcha
+  matcha:
+    external: true
+    name: matcha

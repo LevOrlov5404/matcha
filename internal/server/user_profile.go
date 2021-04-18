@@ -161,7 +161,7 @@ func (s *Server) DeleteUserPicture(c *gin.Context) {
 
 	pictureUUID, err := uuid.Parse(pictureUUIDStr)
 	if err != nil {
-		s.newErrorResponse(c, http.StatusInternalServerError, err)
+		s.newErrorResponse(c, http.StatusBadRequest, err)
 		return
 	}
 
