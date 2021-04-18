@@ -5,20 +5,20 @@ import (
 
 	"github.com/l-orlov/matcha/internal/config"
 	"github.com/sirupsen/logrus"
-	goMail "gopkg.in/mail.v2"
+	gomail "gopkg.in/mail.v2"
 )
 
 type (
 	MailerService struct {
 		cfg           config.Mailer
 		log           *logrus.Entry
-		dialer        *goMail.Dialer
-		msgToSendChan chan *goMail.Message
+		dialer        *gomail.Dialer
+		msgToSendChan chan *gomail.Message
 	}
 )
 
 func NewMailerService(cfg config.Mailer, log *logrus.Entry) *MailerService {
-	d := goMail.NewDialer(
+	d := gomail.NewDialer(
 		cfg.ServerAddress.Host, cfg.ServerAddress.Port, cfg.Username, cfg.Password,
 	)
 	d.Timeout = cfg.Timeout.Duration()
@@ -33,7 +33,7 @@ func NewMailerService(cfg config.Mailer, log *logrus.Entry) *MailerService {
 		dialer: d,
 	}
 
-	mailerSvc.msgToSendChan = make(chan *goMail.Message, cfg.MsgToSendChanSize)
+	mailerSvc.msgToSendChan = make(chan *gomail.Message, cfg.MsgToSendChanSize)
 	mailerSvc.InitWorkers()
 
 	return mailerSvc
@@ -56,7 +56,7 @@ func (s *MailerService) Close() {
 }
 
 func (s *MailerService) SendEmailConfirm(toEmail, token string) {
-	m := goMail.NewMessage()
+	m := gomail.NewMessage()
 
 	m.SetHeader("From", s.cfg.Username)
 	m.SetHeader("To", toEmail)
@@ -70,7 +70,7 @@ func (s *MailerService) SendEmailConfirm(toEmail, token string) {
 }
 
 func (s *MailerService) SendResetPasswordConfirm(toEmail, token string) {
-	m := goMail.NewMessage()
+	m := gomail.NewMessage()
 
 	m.SetHeader("From", s.cfg.Username)
 	m.SetHeader("To", toEmail)
