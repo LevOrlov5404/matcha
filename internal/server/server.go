@@ -45,7 +45,7 @@ func NewServer(
 
 	s.httpServer = &http.Server{
 		Addr:           cfg.Address.String(),
-		Handler:        s.InitRoutes(),
+		Handler:        CORS(s.InitRoutes()),
 		MaxHeaderBytes: 1 << 20, // 1 MB
 		ReadTimeout:    timeout,
 		WriteTimeout:   timeout,
