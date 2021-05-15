@@ -1,4 +1,4 @@
-package server
+package handler
 
 import (
 	"net/http"
@@ -13,8 +13,8 @@ type errorResponse struct {
 	Detail  string `json:"detail"`
 }
 
-func (s *Server) newErrorResponse(c *gin.Context, statusCode int, err error) {
-	logEntry := getLogEntry(c)
+func (h *Handler) newErrorResponse(c *gin.Context, statusCode int, err error) {
+	logEntry := h.getLogEntry(c)
 
 	if customErr, ok := err.(*ierrors.Error); ok {
 		handleCustomError(c, logEntry, customErr)

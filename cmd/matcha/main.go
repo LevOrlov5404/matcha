@@ -10,26 +10,29 @@ import (
 	"syscall"
 
 	"github.com/l-orlov/matcha/internal/config"
+	"github.com/l-orlov/matcha/internal/handler"
 	"github.com/l-orlov/matcha/internal/repository"
 	userpostgres "github.com/l-orlov/matcha/internal/repository/user-postgres"
 	"github.com/l-orlov/matcha/internal/server"
 	"github.com/l-orlov/matcha/internal/service"
-	"github.com/l-orlov/matcha/pkg/logger"
+	"github.com/l-orlov/task-tracker/pkg/logger"
 	_ "github.com/lib/pq"
 	"github.com/sethvargo/go-password/password"
 	"github.com/sirupsen/logrus"
 )
 
 const (
+	envConfigPath = "CONFIG_PATH"
+
 	passwordAllowedLowerLetters = "abcdefghijklmnopqrstuvwxyz"
 	passwordAllowedUpperLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	passwordAllowedDigits       = "0123456789"
 )
 
 func main() {
-	cfg := &config.Config{}
-	if err := config.ReadFromFileAndSetEnv(os.Getenv("CONFIG_PATH"), cfg); err != nil {
-		log.Fatalf("failed to read config: %v", err)
+	cfg, err := config.Init(os.Getenv(envConfigPath))
+	if err != nil {
+		log.Fatalf("failed to init config: %v", err)
 	}
 
 	lg, err := logger.New(cfg.Logger.Level, cfg.Logger.Format)
@@ -67,7 +70,9 @@ func main() {
 
 	svc := service.NewService(cfg, lg, repo, randomSymbolsGenerator, mailer)
 
-	srv := server.NewServer(cfg, lg, svc)
+	h := handler.New(cfg, lg, svc)
+
+	srv := server.New(cfg.Port, h.InitRoutes())
 	go func() {
 		if err := srv.Run(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			lg.Fatalf("error occurred while running http server: %v", err)

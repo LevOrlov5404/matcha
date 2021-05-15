@@ -44,6 +44,10 @@ services:
 
   matcha-api:
     build: .
+    depends_on:
+      - postgres
+      - redis
+      - minio
     command: ./matcha
     container_name: matcha-api
     environment:
