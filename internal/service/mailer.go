@@ -1,84 +1,52 @@
 package service
 
 import (
-	"crypto/tls"
-
-	"github.com/l-orlov/matcha/internal/config"
-	"github.com/sirupsen/logrus"
-	gomail "gopkg.in/mail.v2"
+	"github.com/l-orlov/task-tracker/pkg/mailer"
+	"gopkg.in/mail.v2"
 )
 
 type (
 	MailerService struct {
-		cfg           config.Mailer
-		log           *logrus.Entry
-		dialer        *gomail.Dialer
-		msgToSendChan chan *gomail.Message
+		cfg    MailerServiceConfig
+		mailer mailer.Mailer
+	}
+	MailerServiceConfig struct {
+		From      string
+		AppDomain string
 	}
 )
 
-func NewMailerService(cfg config.Mailer, log *logrus.Entry) *MailerService {
-	d := gomail.NewDialer(
-		cfg.ServerAddress.Host, cfg.ServerAddress.Port, cfg.Username, cfg.Password,
-	)
-	d.Timeout = cfg.Timeout.Duration()
-	d.TLSConfig = &tls.Config{
-		ServerName:         cfg.ServerAddress.Host,
-		InsecureSkipVerify: false,
-	}
-
-	mailerSvc := &MailerService{
+func NewMailerService(cfg MailerServiceConfig, mailer mailer.Mailer) *MailerService {
+	return &MailerService{
 		cfg:    cfg,
-		log:    log,
-		dialer: d,
-	}
-
-	mailerSvc.msgToSendChan = make(chan *gomail.Message, cfg.MsgToSendChanSize)
-	mailerSvc.InitWorkers()
-
-	return mailerSvc
-}
-
-func (s *MailerService) InitWorkers() {
-	for i := 0; i < s.cfg.WorkersNum; i++ {
-		go func() {
-			for m := range s.msgToSendChan {
-				if err := s.dialer.DialAndSend(m); err != nil {
-					s.log.Errorf("failed to send message by email: %v", err)
-				}
-			}
-		}()
+		mailer: mailer,
 	}
 }
 
-func (s *MailerService) Close() {
-	close(s.msgToSendChan)
-}
+func (m *MailerService) SendEmailConfirm(toEmail, token string) {
+	msg := mail.NewMessage()
 
-func (s *MailerService) SendEmailConfirm(toEmail, token string) {
-	m := gomail.NewMessage()
-
-	m.SetHeader("From", s.cfg.Username)
-	m.SetHeader("To", toEmail)
-	m.SetHeader("Subject", "Matcha registration")
-	m.SetBody("text/plain",
+	msg.SetHeader("From", m.cfg.From)
+	msg.SetHeader("To", toEmail)
+	msg.SetHeader("Subject", "Matcha registration")
+	msg.SetBody("text/plain",
 		"We greet you.\nTo complete the registration go by this link.\n"+
-			"localhost:8080/confirm-email?token="+token+
+			m.cfg.AppDomain+"/confirm-email?token="+token+
 			"\nThank you for choosing us :)")
 
-	s.msgToSendChan <- m
+	m.mailer.SendMessage(msg)
 }
 
-func (s *MailerService) SendResetPasswordConfirm(toEmail, token string) {
-	m := gomail.NewMessage()
+func (m *MailerService) SendResetPasswordConfirm(toEmail, token string) {
+	msg := mail.NewMessage()
 
-	m.SetHeader("From", s.cfg.Username)
-	m.SetHeader("To", toEmail)
-	m.SetHeader("Subject", "Matcha reset password")
-	m.SetBody("text/plain",
+	msg.SetHeader("From", m.cfg.From)
+	msg.SetHeader("To", toEmail)
+	msg.SetHeader("Subject", "Matcha reset password")
+	msg.SetBody("text/plain",
 		"Hello.\nTo reset password go by this link.\n"+
-			"localhost:8080/confirm-reset-password?token="+token+
+			m.cfg.AppDomain+"/confirm-reset-password?token="+token+
 			"\nThank you for choosing us :)")
 
-	s.msgToSendChan <- m
+	m.mailer.SendMessage(msg)
 }

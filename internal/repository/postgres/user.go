@@ -1,4 +1,4 @@
-package user_postgres
+package postgres
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	ierrors "github.com/l-orlov/matcha/internal/errors"
 	"github.com/l-orlov/matcha/internal/models"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
@@ -237,16 +236,4 @@ func (r *UserPostgres) UpdateUserAvatarPath(ctx context.Context, userID uint64, 
 	}
 
 	return nil
-}
-
-func getDBError(err error) error {
-	if err, ok := err.(*pq.Error); ok {
-		if err.Code.Class() < "50" { // business error
-			return ierrors.NewBusiness(err, err.Detail)
-		}
-
-		return ierrors.New(err)
-	}
-
-	return err
 }

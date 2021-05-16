@@ -6,11 +6,12 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gabriel-vasile/mimetype v1.2.0
 	github.com/gin-gonic/gin v1.7.1
+	github.com/golang-migrate/migrate/v4 v4.14.1
 	github.com/gomodule/redigo v1.8.4
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/securecookie v1.1.1
 	github.com/jmoiron/sqlx v1.3.3
-	github.com/l-orlov/task-tracker v0.0.0-20210511064441-543ebb2ec5cb
+	github.com/l-orlov/task-tracker v0.0.0-20210515180657-280335aa98a4
 	github.com/lib/pq v1.10.0
 	github.com/minio/minio-go/v7 v7.0.10
 	github.com/pkg/errors v0.9.1

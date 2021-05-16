@@ -9,7 +9,16 @@ import (
 	"github.com/l-orlov/matcha/internal/config"
 	"github.com/l-orlov/matcha/internal/models"
 	"github.com/l-orlov/matcha/internal/repository"
+	"github.com/l-orlov/task-tracker/pkg/mailer"
+	"github.com/pkg/errors"
+	"github.com/sethvargo/go-password/password"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	passwordAllowedLowerLetters = "abcdefghijklmnopqrstuvwxyz"
+	passwordAllowedUpperLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	passwordAllowedDigits       = "0123456789"
 )
 
 type (
@@ -68,19 +77,34 @@ type (
 
 func NewService(
 	cfg *config.Config, log *logrus.Logger,
-	repo *repository.Repository, generator RandomTokenGenerator,
-	mailer Mailer,
-) *Service {
+	repo *repository.Repository, mailer mailer.Mailer,
+) (*Service, error) {
+	var generator RandomTokenGenerator
+	var err error
+	generator, err = password.NewGenerator(&password.GeneratorInput{
+		LowerLetters: passwordAllowedLowerLetters,
+		UpperLetters: passwordAllowedUpperLetters,
+		Digits:       passwordAllowedDigits,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create random symbols generator")
+	}
+
 	authenticationLogEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "authentication-svc"})
 	verificationLogEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "verification-svc"})
 	profileLogEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "user-profile-svc"})
+
+	mailerCfg := MailerServiceConfig{
+		From:      cfg.Mailer.Username,
+		AppDomain: cfg.Mailer.AppDomain,
+	}
 
 	return &Service{
 		User:               NewUserService(repo.User, cfg.JWT.AccessTokenLifetime.Duration()),
 		UserAuthentication: NewAuthenticationService(cfg, authenticationLogEntry, repo),
 		UserAuthorization:  NewAuthorizationService(cfg, repo),
 		Verification:       NewVerificationService(verificationLogEntry, repo.VerificationCache, generator),
-		Mailer:             mailer,
+		Mailer:             NewMailerService(mailerCfg, mailer),
 		UserProfile:        NewUserProfileService(profileLogEntry, cfg.MaxUserPicturesNum, cfg.FilePathTemplates, repo),
-	}
+	}, nil
 }

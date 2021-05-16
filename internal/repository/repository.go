@@ -9,9 +9,9 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/l-orlov/matcha/internal/config"
 	"github.com/l-orlov/matcha/internal/models"
-	cacheredis "github.com/l-orlov/matcha/internal/repository/cache-redis"
-	storageminio "github.com/l-orlov/matcha/internal/repository/storage-minio"
-	userpostgres "github.com/l-orlov/matcha/internal/repository/user-postgres"
+	"github.com/l-orlov/matcha/internal/repository/minio"
+	"github.com/l-orlov/matcha/internal/repository/postgres"
+	"github.com/l-orlov/matcha/internal/repository/redis"
 	"github.com/sirupsen/logrus"
 )
 
@@ -72,21 +72,21 @@ type (
 func NewRepository(
 	cfg *config.Config, log *logrus.Logger, db *sqlx.DB,
 ) (*Repository, error) {
-	userRepo := userpostgres.NewUserPostgres(db, cfg.PostgresDB.Timeout.Duration())
-	userPicturesRepo := userpostgres.NewUserPicturesPostgres(db, cfg.PostgresDB.Timeout.Duration())
+	userRepo := postgres.NewUserPostgres(db, cfg.PostgresDB.Timeout.Duration())
+	userPicturesRepo := postgres.NewUserPicturesPostgres(db, cfg.PostgresDB.Timeout.Duration())
 
 	cacheLogEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "cache-redis"})
-	cacheOptions := cacheredis.Options{
+	cacheOptions := redis.Options{
 		AccessTokenLifetime:               int(cfg.JWT.AccessTokenLifetime.Duration().Seconds()),
 		RefreshTokenLifetime:              int(cfg.JWT.RefreshTokenLifetime.Duration().Seconds()),
 		UserBlockingLifetime:              int(cfg.UserBlocking.Lifetime.Duration().Seconds()),
 		EmailConfirmTokenLifetime:         int(cfg.Verification.EmailConfirmTokenLifetime.Duration().Seconds()),
 		PasswordResetConfirmTokenLifetime: int(cfg.Verification.PasswordResetConfirmTokenLifetime.Duration().Seconds()),
 	}
-	cache := cacheredis.New(cfg.Redis, cacheLogEntry, cacheOptions)
+	cache := redis.New(cfg.Redis, cacheLogEntry, cacheOptions)
 
 	storageEntry := logrus.NewEntry(log).WithFields(logrus.Fields{"source": "minio-storage"})
-	storage, err := storageminio.New(storageminio.Config{
+	storage, err := minio.New(minio.Config{
 		Endpoint:  cfg.Minio.Endpoint.String(),
 		AccessKey: cfg.Minio.AccessKey,
 		SecretKey: cfg.Minio.SecretKey,

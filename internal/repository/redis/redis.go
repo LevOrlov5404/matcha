@@ -1,4 +1,4 @@
-package cache_redis
+package redis
 
 import (
 	"encoding/json"

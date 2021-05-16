@@ -3,6 +3,8 @@ postgresDB:
   maxOpenConns: 10
   maxIdleConns: 10
   timeout: 3s
+  migrationMode: true
+  migrationDir: ./schema
 
 redis:
   proto: tcp

@@ -28,10 +28,13 @@ type (
 		User            string            `yaml:"user" env:"PG_USER,default=postgres"`
 		Password        string            `yaml:"password" env:"PG_PASSWORD,default=123"`
 		Database        string            `yaml:"name" env:"PG_DATABASE,default=postgres"`
+		SSLMode         string            `yaml:"sslmode" env:"PG_SSL_MODE,default=disable"`
 		ConnMaxLifetime cr.DurationConfig `yaml:"connMaxLifetime"`
 		MaxOpenConns    int               `yaml:"maxOpenConns"`
 		MaxIdleConns    int               `yaml:"maxIdleConns"`
 		Timeout         cr.DurationConfig `yaml:"timeout"`
+		MigrationMode   bool              `yaml:"migrationMode"`
+		MigrationDir    string            `yaml:"migrationDir"`
 	}
 	Redis struct {
 		Address     cr.AddressConfig  `yaml:"address" env:"REDIS_ADDRESS,default=0.0.0.0:6379"`
@@ -61,7 +64,8 @@ type (
 	Mailer struct {
 		ServerAddress     cr.AddressConfig  `yaml:"serverAddress" env:"EMAIL_SERVER_ADDRESS,default=smtp.gmail.com:587"`
 		Username          string            `yaml:"username" env:"EMAIL_USERNAME,default=test"`
-		Password          string            `yaml:"password" env:"EMAIL_PASSWORD,default=test"`
+		Password          cr.StdBase64      `yaml:"password" env:"EMAIL_PASSWORD,default=dGVzdA=="`
+		AppDomain         string            `yaml:"appDomain" env:"APP_DOMAIN,default=localhost:8080"`
 		Timeout           cr.DurationConfig `yaml:"timeout"`
 		MsgToSendChanSize int               `yaml:"msgToSendChanSize"`
 		WorkersNum        int               `yaml:"workersNum"`

@@ -1,4 +1,4 @@
-package miniostorage
+package minio
 
 import (
 	"context"
